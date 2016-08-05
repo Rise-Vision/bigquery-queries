@@ -1,0 +1,9 @@
+Table client-side-events:Viewer_Events.eventsYYYYMMDD
+
+Schema
+------
+|- event: string (required)
+|- event_details: string
+|- display_id: string
+|- viewer_version: string                                            
+|- ts: timestamp (required)

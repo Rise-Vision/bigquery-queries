@@ -1,0 +1,96 @@
+SELECT
+  *
+FROM (
+  SELECT
+    total.date AS date,
+    total.number AS total_number,
+    startups.number AS startups_number,
+    scheduled_reboots.number AS scheduled_reboots_number,
+    modern.number AS modern_number,
+    startups_from_reboot.number AS startups_from_reboot_number,
+    graceful.number AS startups_after_graceful_shutdown,
+    v3MultipleStart.ungracefulMultiStartRecentDisplayCount AS v3_displays_with_multiple_ungraceful_startups
+  FROM (
+    SELECT
+      COUNT(DISTINCT display_id) AS number,
+      DATE(ts) AS date
+    FROM
+      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -6, 'MONTH'), CURRENT_TIMESTAMP())
+    GROUP BY
+      date)total
+  JOIN (
+    SELECT
+      COUNT(DISTINCT display_id) AS number,
+      DATE(ts) AS date
+    FROM
+      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -6, 'MONTH'), CURRENT_TIMESTAMP())
+    WHERE
+      event = 'startup'
+    GROUP BY
+      date)startups
+  ON
+    (total.date = startups.date)
+  JOIN (
+    SELECT
+      COUNT(DISTINCT display_id) AS number,
+      DATE(ts) AS date
+    FROM
+      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -6, 'MONTH'), CURRENT_TIMESTAMP())
+    WHERE
+      event = 'timer restart'
+    GROUP BY
+      date)scheduled_reboots
+  ON
+    (total.date = scheduled_reboots.date)
+  JOIN (
+    SELECT
+      COUNT(DISTINCT display_id) AS number,
+      DATE(ts) AS date
+    FROM
+      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -6, 'MONTH'), CURRENT_TIMESTAMP())
+    WHERE
+      player_version > '2016.02.24.13.00'
+      AND event = 'startup'
+    GROUP BY
+      date)modern
+  ON
+    total.date = modern.date
+  JOIN (
+    SELECT
+      COUNT(DISTINCT display_id) AS number,
+      DATE(ts) AS date
+    FROM
+      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -6, 'MONTH'), CURRENT_TIMESTAMP())
+    WHERE
+      player_version >= '2016.02.05.10.00'
+      AND event = 'startup'
+      AND event_details LIKE '%from restart%'
+    GROUP BY
+      date)startups_from_reboot
+  ON
+    total.date = startups_from_reboot.date
+  JOIN (
+    SELECT
+      COUNT(DISTINCT display_id) AS number,
+      DATE(ts) AS date
+    FROM
+      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -6, 'MONTH'), CURRENT_TIMESTAMP())
+    WHERE
+      event = 'startup'
+      AND event_details LIKE '%after graceful shutdown%'
+    GROUP BY
+      date)graceful
+  ON
+    total.date = graceful.date
+  LEFT OUTER JOIN (
+    SELECT
+      ungracefulMultiStartRecentDisplayCount,
+      ddate
+    FROM
+      Native_Events.MultipleUnreliableV3StartsPlayerCount) v3MultipleStart
+  ON
+    v3MultipleStart.ddate = graceful.date)
+WHERE
+  date >= DATE("2016-04-01")
+ORDER BY
+  date ASC

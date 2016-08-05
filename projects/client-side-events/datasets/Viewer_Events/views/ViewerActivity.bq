@@ -1,0 +1,18 @@
+SELECT
+  count,
+  if (event = "channel message",
+    CONCAT("channel ", event_details),
+    event) AS event,
+  event_details
+FROM (
+  SELECT
+    COUNT(event) AS COUNT,
+    event,
+    event_details
+  FROM
+    TABLE_DATE_RANGE(Viewer_Events.events, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
+  GROUP BY
+    event,
+    event_details
+  ORDER BY
+    COUNT DESC)

@@ -1,0 +1,8 @@
+SELECT
+  *
+FROM
+  TABLE_DATE_RANGE([client-side-events:Installer_Events.events], CURRENT_TIMESTAMP(), DATE_ADD(CURRENT_TIMESTAMP(), 1, "DAY"))
+WHERE
+  event = "error"
+ORDER BY
+  ts DESC

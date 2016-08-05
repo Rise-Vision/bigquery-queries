@@ -1,0 +1,14 @@
+SELECT
+  display_id,
+  ts,
+  os,
+  event,
+  if (player_version IS NULL,
+    installer_version,
+    player_version) AS version,
+  event_details
+FROM
+  TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")),
+  TABLE_DATE_RANGE([Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+ORDER BY
+  ts DESC

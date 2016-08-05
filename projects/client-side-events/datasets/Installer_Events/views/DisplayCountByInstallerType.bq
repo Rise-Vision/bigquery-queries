@@ -1,0 +1,42 @@
+select * from (SELECT
+  total.date AS date,
+  total.display_count AS total_display_count,
+  v3.display_count AS v3_display_count,
+  (total.display_count - v3.display_count - cap.display_count) AS v2.display_count,
+  cap.display_count AS cap_display_count
+FROM (
+  SELECT
+    DATE(ts) AS date,
+    COUNT(DISTINCT display_id) AS display_count
+  FROM (
+    SELECT
+      REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS display_id,
+      metadata.timestamp AS ts,
+    FROM
+      TABLE_DATE_RANGE(rvaserver2:appengine_logs.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -300, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+    HAVING
+      display_id IS NOT NULL)
+  GROUP BY
+    date)total
+INNER JOIN (
+  SELECT
+    DATE(ts) AS date,
+    COUNT(DISTINCT display_id) AS display_count
+  FROM
+    TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -300, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+  GROUP BY
+    date)v3
+ON
+  total.date=v3.date
+INNER JOIN (
+  SELECT
+    DATE(ts) AS date,
+    COUNT(DISTINCT display_id) AS display_count
+  FROM
+    TABLE_DATE_RANGE([client-side-events:CAP_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -300, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+  GROUP BY
+    date)cap
+ON
+  total.date = cap.date) where date >= date("2016-04-01")
+ORDER BY
+  date ASC

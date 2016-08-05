@@ -1,0 +1,26 @@
+SELECT
+  starts.started AS starts,
+  completions.completed AS completions,
+  starts.started_dates AS date
+FROM (
+  SELECT
+    COUNT (distinct display_id) AS started,
+    DATE(ts) AS started_dates
+  FROM
+    TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -1, "YEAR"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+  WHERE
+    event = "beginning install"
+  GROUP BY
+    started_dates) starts
+LEFT JOIN (
+  SELECT
+    COUNT(distinct display_id) AS completed,
+    DATE(ts) AS completed_dates
+  FROM
+    TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -1, "YEAR"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+  WHERE
+    event = "install complete"
+  GROUP BY
+    completed_dates) completions
+ON
+  completions.completed_dates = starts.started_dates

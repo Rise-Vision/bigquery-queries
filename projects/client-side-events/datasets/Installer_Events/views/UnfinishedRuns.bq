@@ -1,0 +1,22 @@
+SELECT
+  display_id,
+  ts,
+  event,
+  installer_version,
+  os,
+  ip,
+  event_details
+FROM
+  TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+WHERE
+  display_id IS NOT NULL
+  AND display_id NOT IN (
+  SELECT
+    display_id
+  FROM
+    TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+  WHERE
+    event = "all closed" )
+ORDER BY
+  display_id,
+  ts DESC

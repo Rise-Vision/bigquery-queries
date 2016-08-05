@@ -1,0 +1,15 @@
+SELECT
+  installer_version,
+  COUNT(installer_version)
+FROM (
+  SELECT
+    MAX(installer_version) AS installer_version,
+    display_id
+  FROM
+    TABLE_DATE_RANGE([client-side-events:Installer_Events.events], CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
+  GROUP BY
+    display_id)
+GROUP BY
+  installer_version
+ORDER BY
+  installer_version

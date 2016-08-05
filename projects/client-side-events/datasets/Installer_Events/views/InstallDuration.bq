@@ -1,0 +1,19 @@
+SELECT
+  if (event = "started"
+    AND next_event = "install complete",
+    (next_timestamp - ts) / 1000000,
+    NULL) install_duration_seconds,
+  *
+FROM (
+  SELECT
+    DATE(ts) AS date,
+    LEAD(ts, 1) OVER (PARTITION BY display_id ORDER BY ts) next_timestamp,
+    LEAD(event, 1) OVER (PARTITION BY display_id ORDER BY ts) next_event,
+    *
+  FROM
+    TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -1, "MONTH"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+  WHERE
+    event IN ("started",
+      "install complete")
+  ORDER BY
+    ts DESC)

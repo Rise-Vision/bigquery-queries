@@ -1,0 +1,35 @@
+SELECT
+  downloadCounts.date AS date,
+  downloadCounts.COUNT AS download_count,
+  durations.avg_duration_seconds AS avg_duration_seconds,
+  starts_and_completions.starts AS starts,
+  starts_and_completions.completions AS completions
+FROM (
+  SELECT
+    COUNT(dt) AS COUNT,
+    dt AS date
+  FROM
+    [client-side-events:Installer_Events.InstallerDownloads]
+  WHERE
+    dt != CURRENT_DATE()
+  GROUP BY
+    date) downloadCounts
+LEFT JOIN (
+  SELECT
+    AVG(install_duration_seconds) AS avg_duration_seconds,
+    date
+  FROM
+    [client-side-events:Installer_Events.InstallDuration]
+  GROUP BY
+    date) durations
+ON
+  durations.date = downloadCounts.date
+LEFT JOIN (
+  SELECT
+    starts,
+    completions,
+    date
+  FROM
+    [client-side-events:Installer_Events.StartsAndCompletions]) starts_and_completions
+ON
+  starts_and_completions.date = downloadCounts.date

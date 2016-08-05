@@ -1,0 +1,49 @@
+SELECT
+  a.date AS date,
+  a.starts AS starts,
+  b.completions AS completions
+FROM (
+  SELECT
+    *
+  FROM (
+    SELECT
+      DATE(ts) AS date,
+      COUNT (DISTINCT display_id) AS starts
+    FROM
+      TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -1, "YEAR"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+    WHERE
+      display_id LIKE '0.%'
+      AND event = 'beginning install'
+    GROUP BY
+      date))a
+LEFT JOIN (
+  SELECT
+    DATE(ts) AS date,
+    COUNT (DISTINCT display_id) AS completions
+  FROM (
+    SELECT
+      *,
+      CONCAT(display_id, DATE(ts)) AS display_date
+    FROM (
+      SELECT
+        *
+      FROM
+        TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -1, "YEAR"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")))
+    HAVING
+      display_date IN (
+      SELECT
+        CONCAT(display_id, DATE(ts)) AS display_date
+      FROM
+        TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -1, "YEAR"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+      WHERE
+        display_id LIKE '0.%'
+        AND event = 'beginning install' ))
+  WHERE
+    display_id LIKE '0.%'
+    AND event = 'install complete'
+  GROUP BY
+    date)b
+ON
+  a.date = b.date
+ORDER BY
+  date ASC

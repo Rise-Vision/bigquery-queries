@@ -1,0 +1,47 @@
+SELECT
+  a.date AS date,
+  a.starts AS starts,
+  b.completions AS completions
+FROM (
+  SELECT
+    DATE(ts) AS date,
+    COUNT (DISTINCT display_id) AS starts
+  FROM
+    TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -1, "YEAR"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+  WHERE
+    display_id NOT LIKE '0.%'
+    AND (( event = 'downloading components'
+        AND event_details != '')
+      OR (event = 'upgrading installer')
+      OR (event = 'downloading latest version'))
+  GROUP BY
+    date)a
+LEFT JOIN (
+  SELECT
+    DATE(ts) AS date,
+    COUNT (DISTINCT display_id) AS completions
+  FROM (
+    SELECT
+      *,
+      CONCAT(display_id, DATE(ts)) AS display_date
+    FROM
+      TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -1, "YEAR"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")))
+  WHERE
+    display_id NOT LIKE '0.%'
+    AND event = 'install complete'
+    AND display_date IN (
+    SELECT
+      CONCAT(display_id, DATE(ts)) AS display_date
+    FROM
+      TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -1, "YEAR"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+    WHERE
+      (event = 'downloading components'
+        AND event_details != '')
+      OR event = 'upgrading installer'
+      OR event = 'downloading latest version')
+  GROUP BY
+    date)b
+ON
+  a.date = b.date
+ORDER BY
+  date ASC

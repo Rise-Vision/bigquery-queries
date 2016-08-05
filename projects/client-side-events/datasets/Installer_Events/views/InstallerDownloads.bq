@@ -1,0 +1,12 @@
+SELECT
+  DATE(USEC_TO_TIMESTAMP(time_micros)) AS dt,
+  cs_object,
+  c_ip
+FROM
+  TABLE_QUERY([avid-life-623:RiseStorageLogs], 'table_id contains "UsageLogs" and table_id contains string(year(current_timestamp()))'),
+  TABLE_QUERY([avid-life-623:RiseStorageLogs], 'table_id contains "UsageLogs" and table_id contains string(year(date_add(current_timestamp(), -1, "YEAR")))')
+WHERE
+  cs_bucket = "install-versions.risevision.com"
+  AND sc_status = 200
+  AND cs_method = "GET"
+  AND cs_object LIKE "%nstaller%"

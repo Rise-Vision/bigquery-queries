@@ -1,0 +1,11 @@
+Table client-side-events:Installer_Events.eventsYYYYMMDD
+
+Schema
+------
+|- event: string (required)
+|- event_details: string
+|- display_id: string
+|- ip: string
+|- os: string
+|- installer_version: string
+|- ts: timestamp (required)

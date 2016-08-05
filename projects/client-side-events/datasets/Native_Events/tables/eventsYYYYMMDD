@@ -1,0 +1,12 @@
+Table client-side-events:Native_Events.eventsYYYYMMDD
+
+Schema
+------
+|- event: string (required)
+|- event_details: string                                             
+|- display_id: string                                                
+|- ip: string                                                        
+|- os: string                                                        
+|- chrome_version: string                                            
+|- player_version: string                                            
+|- ts: timestamp (required)                                          

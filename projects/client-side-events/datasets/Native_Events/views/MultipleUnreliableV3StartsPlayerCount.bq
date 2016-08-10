@@ -1,46 +1,54 @@
 SELECT
-  ddate,
-  COUNT(DISTINCT displayid) AS ungracefulMultiStartRecentDisplayCount
+  *
 FROM (
   SELECT
-    recentUngracefulPlayerStartup.pdate AS ddate,
-    recentUngracefulPlayerStartup.display_id AS displayid,
-    recentUngracefulPlayerStartup.startupCount,
-    recentV3.idate
+    ddate,
+    INTEGER(COUNT(DISTINCT displayid)) AS ungracefulMultiStartRecentDisplayCount
   FROM (
     SELECT
-      DATE(ts) AS pdate,
-      display_id,
-      COUNT(display_id) AS startupCount
-    FROM
-      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -6, "MONTH"), CURRENT_TIMESTAMP())
-    WHERE
-      (event = 'startup'
-        AND event_details NOT LIKE "%graceful%"
-        OR event LIKE '%heartbeat%')
-      AND player_version > '2016.02.24.13.00'
-      AND display_id IS NOT NULL
-    GROUP BY
-      pdate,
-      display_id) recentUngracefulPlayerStartup
-  LEFT JOIN (
-    SELECT
-      DATE(ts) AS idate,
-      display_id
-    FROM
-      TABLE_DATE_RANGE([Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -6, "MONTH"),CURRENT_TIMESTAMP())
-    WHERE
-      installer_version > "2015"
-    GROUP BY
-      idate,
-      display_id ) recentV3
-  ON
-    recentV3.idate = recentUngracefulPlayerStartup.pdate
-    AND recentV3.display_id = recentUngracefulPlayerStartup.display_id
-  HAVING
-    recentV3.idate IS NOT NULL
-    AND recentUngracefulPlayerStartup.startupCount > 2)
-GROUP BY
-  ddate
+      recentUngracefulPlayerStartup.pdate AS ddate,
+      recentUngracefulPlayerStartup.display_id AS displayid,
+      recentUngracefulPlayerStartup.startupCount,
+      recentV3.idate
+    FROM (
+      SELECT
+        DATE(ts) AS pdate,
+        display_id,
+        COUNT(display_id) AS startupCount
+      FROM
+        TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+      WHERE
+        (event = 'startup'
+          AND event_details NOT LIKE "%graceful%"
+          OR event LIKE '%heartbeat%')
+        AND player_version > '2016.02.24.13.00'
+        AND display_id IS NOT NULL
+      GROUP BY
+        pdate,
+        display_id) recentUngracefulPlayerStartup
+    LEFT JOIN (
+      SELECT
+        DATE(ts) AS idate,
+        display_id
+      FROM
+        TABLE_DATE_RANGE([Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+      WHERE
+        installer_version > "2015"
+      GROUP BY
+        idate,
+        display_id ) recentV3
+    ON
+      recentV3.idate = recentUngracefulPlayerStartup.pdate
+      AND recentV3.display_id = recentUngracefulPlayerStartup.display_id
+    HAVING
+      recentV3.idate IS NOT NULL
+      AND recentUngracefulPlayerStartup.startupCount > 2)
+  GROUP BY
+    ddate ),
+  (
+  SELECT
+    * from[client-side-events:Aggregate_Tables.MultipleUnreliableV3StartsPlayerCount]
+  WHERE
+    ddate < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY")))
 ORDER BY
   ddate

@@ -3,19 +3,19 @@ SELECT
 FROM (
   SELECT
     total.date AS date,
-    total.number AS total_number,
-    startups.number AS startups_number,
-    scheduled_reboots.number AS scheduled_reboots_number,
-    modern.number AS modern_number,
-    startups_from_reboot.number AS startups_from_reboot_number,
-    graceful.number AS startups_after_graceful_shutdown,
-    v3MultipleStart.ungracefulMultiStartRecentDisplayCount AS v3_displays_with_multiple_ungraceful_startups
+    INTEGER(total.number) AS total_number,
+    INTEGER(startups.number) AS startups_number,
+    INTEGER(scheduled_reboots.number) AS scheduled_reboots_number,
+    INTEGER(modern.number) AS modern_number,
+    INTEGER(startups_from_reboot.number) AS startups_from_reboot_number,
+    INTEGER(graceful.number) AS startups_after_graceful_shutdown,
+    INTEGER(v3MultipleStart.ungracefulMultiStartRecentDisplayCount) AS v3_displays_with_multiple_ungraceful_startups
   FROM (
     SELECT
       COUNT(DISTINCT display_id) AS number,
       DATE(ts) AS date
     FROM
-      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -6, 'MONTH'), CURRENT_TIMESTAMP())
+      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, 'DAY'), DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'))
     GROUP BY
       date)total
   JOIN (
@@ -23,7 +23,7 @@ FROM (
       COUNT(DISTINCT display_id) AS number,
       DATE(ts) AS date
     FROM
-      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -6, 'MONTH'), CURRENT_TIMESTAMP())
+      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, 'DAY'), DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'))
     WHERE
       event = 'startup'
     GROUP BY
@@ -35,7 +35,7 @@ FROM (
       COUNT(DISTINCT display_id) AS number,
       DATE(ts) AS date
     FROM
-      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -6, 'MONTH'), CURRENT_TIMESTAMP())
+      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, 'DAY'), DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'))
     WHERE
       event = 'timer restart'
     GROUP BY
@@ -47,7 +47,7 @@ FROM (
       COUNT(DISTINCT display_id) AS number,
       DATE(ts) AS date
     FROM
-      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -6, 'MONTH'), CURRENT_TIMESTAMP())
+      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, 'DAY'), DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'))
     WHERE
       player_version > '2016.02.24.13.00'
       AND event = 'startup'
@@ -60,7 +60,7 @@ FROM (
       COUNT(DISTINCT display_id) AS number,
       DATE(ts) AS date
     FROM
-      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -6, 'MONTH'), CURRENT_TIMESTAMP())
+      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, 'DAY'), DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'))
     WHERE
       player_version >= '2016.02.05.10.00'
       AND event = 'startup'
@@ -74,7 +74,7 @@ FROM (
       COUNT(DISTINCT display_id) AS number,
       DATE(ts) AS date
     FROM
-      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -6, 'MONTH'), CURRENT_TIMESTAMP())
+      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, 'DAY'), DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'))
     WHERE
       event = 'startup'
       AND event_details LIKE '%after graceful shutdown%'
@@ -82,15 +82,20 @@ FROM (
       date)graceful
   ON
     total.date = graceful.date
-  LEFT OUTER JOIN (
+  JOIN (
     SELECT
       ungracefulMultiStartRecentDisplayCount,
       ddate
     FROM
-      Native_Events.MultipleUnreliableV3StartsPlayerCount) v3MultipleStart
+      Aggregate_Tables.MultipleUnreliableV3StartsPlayerCount) v3MultipleStart
   ON
-    v3MultipleStart.ddate = graceful.date)
-WHERE
-  date >= DATE("2016-04-01")
+    v3MultipleStart.ddate = total.date),
+  (
+  SELECT
+    *
+  FROM
+    [client-side-events:Aggregate_Tables.PlayerReliabilityStats]
+  WHERE
+    date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -3, 'DAY')))
 ORDER BY
   date ASC

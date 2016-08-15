@@ -22,7 +22,7 @@ FROM (
         display_id,
         COUNT(display_id) AS startupCount
       FROM
-        TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -9, "DAY"), CURRENT_TIMESTAMP())
+        TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
       WHERE
         (event = 'startup'
           AND event_details NOT LIKE "%graceful%"
@@ -37,7 +37,7 @@ FROM (
         DATE(ts) AS idate,
         display_id
       FROM
-        TABLE_DATE_RANGE([Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -9, "DAY"),CURRENT_TIMESTAMP())
+        TABLE_DATE_RANGE([Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
       WHERE
         installer_version > "2015"
       GROUP BY
@@ -66,7 +66,7 @@ LEFT JOIN (
     display_id,
     COUNT(display_id) AS ungracefulStartupCount
   FROM
-    TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -9, "DAY"), CURRENT_TIMESTAMP())
+    TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
   WHERE
     (event = 'startup'
       AND event_details NOT LIKE "%graceful%"
@@ -86,7 +86,7 @@ LEFT JOIN (
       display_id,
       REPLACE(event, " used", "") event
     FROM
-      TABLE_DATE_RANGE([Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -9, "DAY"), CURRENT_TIMESTAMP())
+      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
     WHERE
       event LIKE "%item used"
       OR event = "widget done loop"
@@ -97,3 +97,5 @@ LEFT JOIN (
     display_id ) deprecatedContent
 ON
   deprecatedContent.display_id = ids.displayid
+ORDER BY
+  ids.daysnoisy DESC

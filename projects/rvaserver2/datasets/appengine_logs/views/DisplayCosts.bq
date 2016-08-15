@@ -1,0 +1,85 @@
+SELECT
+  *
+FROM (
+  SELECT
+    costs.date AS date,
+    costs.datastore_gets_cost + costs.datastore_puts_cost + costs.instance_hour_cost AS total_cost,
+    (costs.datastore_gets_cost + costs.datastore_puts_cost + costs.instance_hour_cost) / displays.total_display_count AS cost_per_display,
+    costs.reindex_count AS reindex_count
+  FROM (
+    SELECT
+      cache_miss.date AS date,
+      // Free tier until 50,000. $0.06 per 100,000 gets/puts thereafter
+      IF(cache_miss.number < 50000, 0, (channel_updates.number - 50000) * 0.6 / 100000) AS datastore_gets_cost,
+      // Each display request corresponds to 2, each channel update corresponds to 1
+      // Same pricing as above
+      IF(display_requests.number * 2 + channel_updates.number < 50000, 0, (display_requests.number * 2 + channel_updates.number - 50000) * 0.6 / 100000) AS datastore_puts_cost,
+      (display_requests.number * 3) + (channel_updates.number * 5) AS reindex_count,
+      instance_hour.number * 0.2 AS instance_hour_cost
+    FROM (
+      SELECT
+        DATE(metadata.timestamp) AS date,
+        COUNT(protoPayload.line.logMessage) AS number
+      FROM
+        TABLE_DATE_RANGE([rvaserver2:appengine_logs.appengine_googleapis_com_request_log_], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+      WHERE
+        protopayload.moduleid IS NULL
+        AND protoPayload.line.logMessage LIKE '%not found in the cache, retrieving from data store%'
+      GROUP BY
+        date )cache_miss
+    JOIN (
+      SELECT
+        DATE(metadata.timestamp) AS date,
+        SUM(FLOAT(RTRIM(protopayload.latency, "s"))) / 60 / 60 AS number
+      FROM
+        TABLE_DATE_RANGE([rvaserver2:appengine_logs.appengine_googleapis_com_request_log_], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+      WHERE
+        protopayload.moduleid IS NULL
+      GROUP BY
+        date)instance_hour
+    ON
+      cache_miss.date = instance_hour.date
+    JOIN (
+      SELECT
+        DATE(metadata.timestamp) AS date,
+        COUNT(*) AS number
+      FROM
+        TABLE_DATE_RANGE([rvaserver2:appengine_logs.appengine_googleapis_com_request_log_], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+      WHERE
+        protoPayload.moduleId IS NULL
+        AND protoPayload.resource LIKE '/v2/viewer/display/%'
+      GROUP BY
+        date)display_requests
+    ON
+      cache_miss.date = display_requests.date
+    JOIN (
+      SELECT
+        DATE(metadata.timestamp) AS date,
+        COUNT(*) AS number
+      FROM
+        TABLE_DATE_RANGE([rvaserver2:appengine_logs.appengine_googleapis_com_request_log_], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+      WHERE
+        protoPayload.moduleId IS NULL
+        AND protoPayload.resource LIKE '/_ah/channel/%'
+      GROUP BY
+        date)channel_updates
+    ON
+      cache_miss.date = channel_updates.date)costs
+  LEFT JOIN (
+    SELECT
+      *
+    FROM
+      [client-side-events:Aggregate_Tables.DisplayCountByInstallerType])displays
+  ON
+    costs.date = displays.date
+  ORDER BY
+    date ASC),
+  (
+  SELECT
+    *
+  FROM
+    [client-side-events:Aggregate_Tables.DisplayCosts]
+  WHERE
+    date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY")))
+ORDER BY
+  date ASC

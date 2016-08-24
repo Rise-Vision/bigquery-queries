@@ -22,12 +22,14 @@ FROM (
         display_id,
         COUNT(display_id) AS startupCount
       FROM
-        TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+        TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")),
+        TABLE_DATE_RANGE([Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
       WHERE
-        (event = 'startup'
-          AND event_details NOT LIKE "%graceful%"
-          OR event LIKE '%heartbeat%')
-        AND player_version > '2016.02.24.13.00'
+        ((event = 'startup'
+            AND player_version > '2016.02.24.13.00'
+            AND event_details NOT LIKE "%graceful%")
+          OR event LIKE '%heartbeat%'
+          OR event = "watchdog restart")
         AND display_id IS NOT NULL
       GROUP BY
         pdate,
@@ -66,12 +68,14 @@ LEFT JOIN (
     display_id,
     COUNT(display_id) AS ungracefulStartupCount
   FROM
-    TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+    TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")),
+    TABLE_DATE_RANGE([Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
   WHERE
-    (event = 'startup'
-      AND event_details NOT LIKE "%graceful%"
-      OR event LIKE '%heartbeat%')
-    AND player_version > '2016.02.24.13.00'
+    ((event = 'startup'
+        AND player_version > '2016.02.24.13.00'
+        AND event_details NOT LIKE "%graceful%")
+      OR event LIKE '%heartbeat%'
+      OR event = "watchdog restart")
     AND display_id IS NOT NULL
   GROUP BY
     display_id ) totalcounts

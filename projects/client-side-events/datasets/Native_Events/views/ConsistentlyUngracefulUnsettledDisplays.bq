@@ -90,7 +90,7 @@ LEFT JOIN (
       display_id,
       REPLACE(event, " used", "") event
     FROM
-      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+      TABLE_DATE_RANGE([Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
     WHERE
       event LIKE "%item used"
       OR event = "widget done loop"

@@ -1,5 +1,13 @@
 SELECT
-  *
+  date,
+  total_number,
+  startups_number,
+  scheduled_reboots_number,
+  modern_number,
+  startups_from_reboot_number,
+  startups_after_graceful_shutdown,
+  v3_displays_with_multiple_ungraceful_startups,
+  IFNULL(modern_number_with_java_player,modern_number) AS modern_number_with_java_player
 FROM (
   SELECT
     total.date AS date,
@@ -9,7 +17,8 @@ FROM (
     INTEGER(modern.number) AS modern_number,
     INTEGER(startups_from_reboot.number) AS startups_from_reboot_number,
     INTEGER(graceful.number) AS startups_after_graceful_shutdown,
-    INTEGER(v3MultipleStart.ungracefulMultiStartRecentDisplayCount) AS v3_displays_with_multiple_ungraceful_startups
+    INTEGER(v3MultipleStart.ungracefulMultiStartRecentDisplayCount) AS v3_displays_with_multiple_ungraceful_startups,
+    INTEGER(modern_with_java_player.number) AS modern_number_with_java_player
   FROM (
     SELECT
       COUNT(DISTINCT display_id) AS number,
@@ -51,11 +60,26 @@ FROM (
       TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, 'DAY'), DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY')),
       TABLE_DATE_RANGE([Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, 'DAY'), DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'))
     WHERE
- (event = "startup" && player_version > '2016.02.24.13.00') || (event = "started" && length(installer_version)=16 && installer_version>"2016.09.27.00.00")
+      (event = "startup"
+        AND player_version > '2016.02.24.13.00') || (event = "started" && LENGTH(installer_version)=16 && installer_version>"2016.09.27.00.00")
     GROUP BY
       date)modern
   ON
     total.date = modern.date
+  JOIN (
+    SELECT
+      COUNT(DISTINCT display_id) AS number,
+      DATE(ts) AS date
+    FROM
+      TABLE_DATE_RANGE([Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, 'DAY'), DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY')),
+      TABLE_DATE_RANGE([Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, 'DAY'), DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'))
+    WHERE
+      (event = "startup"
+        AND player_version > '2016.02.24.13.00') || (event = "started" && NOT(LENGTH(installer_version)=16 && installer_version>"2016.09.27.00.00"))
+    GROUP BY
+      date)modern_with_java_player
+  ON
+    total.date = modern_with_java_player.date
   JOIN (
     SELECT
       COUNT(DISTINCT display_id) AS number,

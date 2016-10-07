@@ -24,7 +24,7 @@ FROM (
           display_id IS NOT NULL)
       GROUP BY
         date)total
-    INNER JOIN (
+    LEFT JOIN (
       SELECT
         DATE(ts) AS date,
         COUNT(DISTINCT display_id) AS display_count
@@ -34,7 +34,7 @@ FROM (
         date)v3
     ON
       total.date=v3.date
-    INNER JOIN (
+    LEFT JOIN (
       SELECT
         DATE(ts) AS date,
         COUNT(DISTINCT display_id) AS display_count

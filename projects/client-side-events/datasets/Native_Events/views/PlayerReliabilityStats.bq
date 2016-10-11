@@ -7,7 +7,9 @@ SELECT
   startups_from_reboot_number,
   startups_after_graceful_shutdown,
   v3_displays_with_multiple_ungraceful_startups,
-  IFNULL(modern_number_with_java_player,modern_number) AS modern_number_with_java_player
+  IFNULL(modern_number_with_java_player,modern_number) AS modern_number_with_java_player,
+  displayCount_v3_display_count,
+  displayCount_v2_display_count
 FROM (
   SELECT
     total.date AS date,
@@ -18,7 +20,9 @@ FROM (
     INTEGER(startups_from_reboot.number) AS startups_from_reboot_number,
     INTEGER(graceful.number) AS startups_after_graceful_shutdown,
     INTEGER(v3MultipleStart.ungracefulMultiStartRecentDisplayCount) AS v3_displays_with_multiple_ungraceful_startups,
-    INTEGER(modern_with_java_player.number) AS modern_number_with_java_player
+    INTEGER(modern_with_java_player.number) AS modern_number_with_java_player,
+    INTEGER(displayCount.v3_display_count) AS displayCount_v3_display_count,
+    INTEGER(displayCount.v2_display_count) AS displayCount_v2_display_count
   FROM (
     SELECT
       COUNT(DISTINCT display_id) AS number,
@@ -114,7 +118,16 @@ FROM (
     FROM
       Aggregate_Tables.MultipleUnreliableV3StartsPlayerCount) v3MultipleStart
   ON
-    v3MultipleStart.ddate = total.date),
+    v3MultipleStart.ddate = total.date
+  JOIN (
+    SELECT
+      date,
+      v3_display_count,
+      v2_display_count
+    FROM
+      [client-side-events:Aggregate_Tables.DisplayCountByInstallerType])displayCount
+  ON
+    total.date = displayCount.date ),
   (
   SELECT
     *

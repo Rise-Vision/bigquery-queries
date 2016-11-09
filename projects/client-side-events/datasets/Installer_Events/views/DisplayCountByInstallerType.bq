@@ -6,9 +6,9 @@ FROM (
   FROM (
     SELECT
       total.date AS date,
-      INTEGER(total.display_count) AS total_display_count,
+      INTEGER(total.display_count - v3_api_exclude.display_count + v3.display_count) AS total_display_count,
       INTEGER(v3.display_count) AS v3_display_count,
-      INTEGER((total.display_count - v3.display_count - cap.display_count)) AS v2_display_count,
+      INTEGER((total.display_count - v3_api_exclude.display_count - cap.display_count)) AS v2_display_count,
       INTEGER(cap.display_count) AS cap_display_count
     FROM (
       SELECT
@@ -24,6 +24,14 @@ FROM (
           display_id IS NOT NULL)
       GROUP BY
         date)total
+    LEFT JOIN (
+      SELECT
+        date,
+        display_count
+      FROM
+        [client-side-events:Viewer_Events.APICallsFromV3]) v3_api_exclude
+    ON
+      v3_api_exclude.date = total.date
     LEFT JOIN (
       SELECT
         DATE(ts) AS date,
@@ -52,4 +60,4 @@ FROM (
   WHERE
     date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY")))
 ORDER BY
-  date ASC
+  date asc

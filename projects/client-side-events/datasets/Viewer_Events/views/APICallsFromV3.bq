@@ -1,0 +1,15 @@
+SELECT
+  date,
+  COUNT(DISTINCT display_id) AS display_count
+FROM (
+  SELECT
+    REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS display_id,
+    REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display.*&pn=([A-Za-z0-9-]+)') AS type,
+    DATE(metadata.timestamp) AS date,
+  FROM
+    TABLE_DATE_RANGE(rvaserver2:appengine_logs.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+  HAVING
+    display_id IS NOT NULL
+    AND type = "RisePlayerElectron" )
+GROUP BY
+  date

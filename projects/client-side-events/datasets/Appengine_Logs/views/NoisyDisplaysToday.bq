@@ -5,7 +5,7 @@ FROM (
   SELECT
     REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS display_id_from_v2_viewer_display_calls
   FROM
-    TABLE_DATE_RANGE([rvaserver2:appengine_logs.appengine_googleapis_com_request_log_], CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
+    TABLE_DATE_RANGE([rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_], CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
   HAVING
     display_id_from_v2_viewer_display_calls IS NOT NULL)
 GROUP BY

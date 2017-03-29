@@ -1,5 +1,5 @@
 SELECT
-  active.display_id,
+  COUNT(DISTINCT active.display_id) numberOfDisplays,
   cache.cache_version
 FROM (
   SELECT
@@ -52,5 +52,4 @@ SELECT
 ON
   cache.display_id=active.display_id
 GROUP EACH BY
-  active.display_id,
   cache.cache_version

@@ -2,12 +2,12 @@ SELECT
   REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS display_id,
   SUBSTR(protoPayload.resource, 1, 18) AS resource,
   SUM(protoPayload.megaCycles) AS megacycles,
-  count(metadata.timestamp) as count,
+  count(timestamp) as count,
   sum(integer(protopayload.wasloadingrequest)) as loading_request_count
 FROM
-  TABLE_DATE_RANGE([rvaserver2:appengine_logs.appengine_googleapis_com_request_log_], CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
+  TABLE_DATE_RANGE([rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_], CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
 WHERE
-  metadata.timestamp >= date_add(current_timestamp(), -1, "HOUR")
+  timestamp >= date_add(current_timestamp(), -1, "HOUR")
 GROUP BY
   display_id, resource
 HAVING

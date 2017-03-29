@@ -1,8 +1,8 @@
 SELECT
   COUNT(*) AS channel_calls,
-  CONCAT(IF(LENGTH(STRING(MONTH(metadata.timestamp))) = 1,"0" + STRING(MONTH(metadata.timestamp)), STRING(MONTH(metadata.timestamp))), "-", IF(LENGTH(STRING(DAY(metadata.timestamp))) = 1,"0" + STRING(DAY(metadata.timestamp)), STRING(DAY(metadata.timestamp)))) AS dt
+  CONCAT(IF(LENGTH(STRING(MONTH(timestamp))) = 1,"0" + STRING(MONTH(timestamp)), STRING(MONTH(timestamp))), "-", IF(LENGTH(STRING(DAY(timestamp))) = 1,"0" + STRING(DAY(timestamp)), STRING(DAY(timestamp)))) AS dt
 FROM
-  TABLE_DATE_RANGE(appengine_logs.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -30, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+  TABLE_DATE_RANGE(appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -30, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
 WHERE
   protoPayload.resource LIKE '%channel%'
 GROUP BY

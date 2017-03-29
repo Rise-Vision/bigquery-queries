@@ -10,20 +10,20 @@ SELECT
   interval_stats.request_count as request_count
 FROM (
   SELECT
-    FLOOR((CURRENT_TIMESTAMP() - metadata.timestamp) / 1000000 / 60) one_minute_prior_interval_group,
+    FLOOR((CURRENT_TIMESTAMP() - timestamp) / 1000000 / 60) one_minute_prior_interval_group,
     SUM(if (protoPayload.pendingTime IS NULL,
         0,
-        FLOAT(RTRIM(protoPayload.pendingTime, "s")))) AS pending_time,
-    MAX(metadata.timestamp) AS latest_time_in_interval,
+        protoPayload.pendingTime)) AS pending_time,
+    MAX(timestamp) AS latest_time_in_interval,
     SUM(protoPayload.megacycles) / 1000 AS gigacycles,
-    SUM(float(rtrim(protoPayload.latency, "s"))) AS latency,
+    SUM(protoPayload.latency) AS latency,
     COUNT (DISTINCT protoPayload.instanceId) AS instances,
     COUNT (DISTINCT REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)')) AS display_count,
     COUNT(*) AS request_count
   FROM
-    TABLE_DATE_RANGE(appengine_logs.appengine_googleapis_com_request_log_, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
+    TABLE_DATE_RANGE(appengine_logs_v2.appengine_googleapis_com_request_log_, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
   WHERE
-    CURRENT_TIMESTAMP() - metadata.timestamp < 3600000000
+    CURRENT_TIMESTAMP() - timestamp < 3600000000
   GROUP BY
     one_minute_prior_interval_group
   ORDER BY
@@ -31,14 +31,14 @@ FROM (
 LEFT JOIN (
 select * from (
   SELECT
-    FLOOR((CURRENT_TIMESTAMP() - metadata.timestamp) / 1000000 / 60) one_minute_prior_interval_group,
+    FLOOR((CURRENT_TIMESTAMP() - timestamp) / 1000000 / 60) one_minute_prior_interval_group,
     REGEXP_EXTRACT(protoPayload.resource,r'&vv=([A-Za-z0-9-]+)') AS viewer_version,
     COUNT(*) AS version_count,
     RANK() OVER (PARTITION BY one_minute_prior_interval_group ORDER BY version_count DESC) AS version_rank
   FROM
-    TABLE_DATE_RANGE(appengine_logs.appengine_googleapis_com_request_log_, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
+    TABLE_DATE_RANGE(appengine_logs_v2.appengine_googleapis_com_request_log_, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
   WHERE
-    CURRENT_TIMESTAMP() - metadata.timestamp < 3600000000
+    CURRENT_TIMESTAMP() - timestamp < 3600000000
     AND SUBSTR(protoPayload.resource, 0, 18) = "/v2/viewer/display"
   GROUP BY
     one_minute_prior_interval_group,

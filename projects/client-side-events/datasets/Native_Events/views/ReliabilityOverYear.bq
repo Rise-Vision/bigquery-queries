@@ -2,22 +2,21 @@ SELECT
   COUNT(successful_restart) AS successful_restart_count,
   COUNT(DISTINCT display_id) AS display_count,
   COUNT(successful_restart) / COUNT(DISTINCT display_id) AS reliable_percentage,
-  DATE_ADD(CURRENT_TIMESTAMP(), -(periods_ago * 12), "DAY") AS period,
+  DATE_ADD(CURRENT_TIMESTAMP(), -(periods_ago * 12), "DAY") as period,
 FROM (
   SELECT
     event AS successful_restart,
-    FLOOR(DATEDIFF(CURRENT_TIMESTAMP(), ts) / 12) AS periods_ago,
+    FLOOR(DATEDIFF(CURRENT_TIMESTAMP(), ts) / 12) as periods_ago,
   FROM
     TABLE_DATE_RANGE([client-side-events:Native_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -1, "YEAR"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
   WHERE
-    (event = "startup"
-      AND event_details = "from restart")),
+    (event = "startup" and event_details = "from restart")),
   (
   SELECT
     REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS display_id,
-    FLOOR(DATEDIFF(CURRENT_TIMESTAMP(), metadata.timestamp) / 12) AS periods_ago,
+    FLOOR(DATEDIFF(CURRENT_TIMESTAMP(), timestamp) / 12) as periods_ago,
   FROM
-    TABLE_DATE_RANGE(rvaserver2:appengine_logs.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -1, "YEAR"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+    TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -1, "YEAR"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
   HAVING
     display_id IS NOT NULL)
 GROUP BY

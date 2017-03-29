@@ -6,9 +6,9 @@ SELECT
 FROM (
   SELECT
     COUNT(DISTINCT REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)')) AS display_id_count,
-    DATE(metadata.timestamp) AS date
+    DATE(timestamp) AS date
   FROM
-    TABLE_DATE_RANGE(appengine_logs.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -45, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+    TABLE_DATE_RANGE(appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -45, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
   GROUP BY
     date) core
 LEFT JOIN (
@@ -34,9 +34,9 @@ LEFT JOIN (
     FROM (
       SELECT
         REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS display_id,
-        DATE(metadata.timestamp) AS date
+        DATE(timestamp) AS date
       FROM
-        TABLE_DATE_RANGE(appengine_logs.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -45, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+        TABLE_DATE_RANGE(appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -45, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
       HAVING
         display_id IS NOT NULL
       ORDER BY

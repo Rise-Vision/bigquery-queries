@@ -1,0 +1,52 @@
+SELECT
+  core.date AS date,
+  core.display_id_count AS core_displays,
+  clients.display_id_count AS client_displays,
+  noise.display_id_count AS noisy_displays
+FROM (
+  SELECT
+    COUNT(DISTINCT REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)')) AS display_id_count,
+    DATE(metadata.timestamp) AS date
+  FROM
+    TABLE_DATE_RANGE(appengine_logs.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -45, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+  GROUP BY
+    date) core
+LEFT JOIN (
+  SELECT
+    COUNT(DISTINCT display_id) AS display_id_count,
+    DATE(ts) AS date
+  FROM
+    TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -45, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")),
+    TABLE_DATE_RANGE([client-side-events:CAP_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -45, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")),
+  GROUP BY
+    date) clients
+ON
+  clients.date = core.date
+LEFT JOIN (
+  SELECT
+    COUNT(*) AS display_id_count,
+    date
+  FROM (
+    SELECT
+      COUNT(*) AS COUNT,
+      date,
+      display_id
+    FROM (
+      SELECT
+        REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS display_id,
+        DATE(metadata.timestamp) AS date
+      FROM
+        TABLE_DATE_RANGE(appengine_logs.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -45, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+      HAVING
+        display_id IS NOT NULL
+      ORDER BY
+        display_id)
+    GROUP BY
+      display_id,
+      date
+    HAVING
+      COUNT > 480)
+  GROUP BY
+    date ) noise
+ON
+  noise.date = core.date

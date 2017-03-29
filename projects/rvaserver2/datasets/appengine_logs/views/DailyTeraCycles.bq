@@ -1,0 +1,38 @@
+SELECT
+  cycles.date AS date,
+  cycles.daily_teracycles AS daily_teracycles,
+  cycles.display_count AS display_count,
+  cycles.pending_time AS pending_time,
+  instances.avg_fifteen_min_instance_count AS avg_fifteen_min_instance_count
+FROM (
+  SELECT
+    SUM(protopayload.megacycles) / 1000000 AS daily_teracycles,
+    COUNT(DISTINCT REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)')) AS display_count,
+    SUM(if (protoPayload.pendingTime IS NULL,
+        0,
+        FLOAT(RTRIM(protoPayload.pendingTime, "s")))) AS pending_time,
+    DATE(metadata.timestamp) AS date
+  FROM
+    TABLE_DATE_RANGE(appengine_logs.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -90, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+  GROUP BY
+    date) AS cycles
+LEFT JOIN (
+  SELECT
+    AVG(instances) AS avg_fifteen_min_instance_count,
+    date
+  FROM (
+    SELECT
+      FLOOR((CURRENT_TIMESTAMP() - metadata.timestamp) / 1000000 / 60 / 15) fifteen_minute_prior_interval_group,
+      MAX(metadata.timestamp) AS lastest_time_in_interval,
+      MAX(DATE(metadata.timestamp)) AS date,
+      COUNT (DISTINCT protoPayload.instanceId) AS instances,
+    FROM
+      TABLE_DATE_RANGE(appengine_logs.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -90, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+    GROUP BY
+      fifteen_minute_prior_interval_group )
+  GROUP BY
+    date
+  ORDER BY
+    date DESC ) instances
+ON
+  instances.date = cycles.date

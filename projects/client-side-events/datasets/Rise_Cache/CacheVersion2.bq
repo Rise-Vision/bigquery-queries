@@ -1,0 +1,55 @@
+SELECT
+  COUNT(DISTINCT active.display_id) numberOfDisplays,
+  cache.cache_version
+FROM (
+  SELECT
+    display_id
+  FROM (
+    SELECT
+      REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS display_id
+    FROM
+      TABLE_DATE_RANGE([rvaserver2:appengine_logs.appengine_googleapis_com_request_log_], CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
+    WHERE
+      protoPayload.resource LIKE '/v2/viewer/display/%'
+      AND protoPayload.appId='s~rvaserver2'),
+    (
+    SELECT
+      REGEXP_EXTRACT(protoPayload.resource,r'.+id=([\w-]+)') AS displayId
+    FROM
+      TABLE_DATE_RANGE([rvaserver2:appengine_logs.appengine_googleapis_com_request_log_], CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
+    WHERE
+      protoPayload.resource LIKE '/v2/player/components%'
+      AND protoPayload.appId='s~rvaserver2'),
+    (
+    SELECT
+      REGEXP_EXTRACT(protoPayload.resource,r'.+id=([\w-]+)') AS displayId
+    FROM
+      TABLE_DATE_RANGE([rvaserver2:appengine_logs.appengine_googleapis_com_request_log_], CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
+    WHERE
+      protoPayload.resource LIKE '/player/update%'
+      AND protoPayload.appId='s~rvaserver2')
+  WHERE
+    display_id IS NOT NULL
+  GROUP BY
+    display_id) AS active
+LEFT JOIN EACH (
+  SELECT all.display_id, cache_version, ts FROM (
+SELECT
+    display_id, cache_version, ts
+  FROM
+    TABLE_DATE_RANGE(Rise_Cache.events, TIMESTAMP('2016-01-04'),CURRENT_TIMESTAMP()) 
+) all
+  INNER JOIN (
+    SELECT
+      display_id, MAX(ts) as maxDate
+    FROM
+      TABLE_DATE_RANGE(Rise_Cache.events, TIMESTAMP('2016-01-04'),CURRENT_TIMESTAMP())  
+    GROUP BY display_id
+  ) latest 
+  ON latest.display_id = all.display_id AND latest.maxDate = all.ts
+  WHERE all.display_id != ""
+  GROUP BY all.display_id, cache_version, ts) AS cache
+ON
+  cache.display_id=active.display_id
+GROUP EACH BY
+  cache.cache_version

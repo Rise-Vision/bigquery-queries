@@ -1,0 +1,17 @@
+select year, month, count(distinct companyId, 100000) 
+from 
+  (
+    select MONTH(DR.startTime) as month, YEAR(DR.startTime) as year, D.companyId as companyId 
+    from (
+            SELECT REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') as displayId, date(metadata.timestamp) as startTime 
+            from TABLE_DATE_RANGE(rvaserver2:appengine_logs.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -2, "YEAR"), CURRENT_TIMESTAMP())
+            where protoPayload.appId='s~rvaserver2'
+   ) DR 
+   inner join (select max(changeDate),displayId,companyId FROM [coreData.displays] WHERE appId='s~rvaserver2' group each by displayId, companyId) D 
+   on DR.displayId = D.displayId 
+  ),
+  (select  MONTH(lastLogin) as month, YEAR(lastLogin) as year, companyId 
+    from [coreData.users] 
+    where lastLogin is not null and appId='s~rvaserver2')
+group each by year, month
+order by year desc, month desc

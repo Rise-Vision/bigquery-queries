@@ -1,0 +1,37 @@
+select C.month as month, C.startDate as startDate, C.endDate as endDate, C.companyId as companyId from
+(select month, startDate, endDate, companyId from
+  
+    --had at least 1 display contact the Core during the month
+    (select
+      STRFTIME_UTC_USEC(TIMESTAMP_TO_USEC(DATE_ADD(USEC_TO_TIMESTAMP(UTC_USEC_TO_MONTH(TIMESTAMP_TO_USEC(DR.startTime))), 1, "MONTH")) - 1, "%b-%y") as month,
+      DATE_ADD(USEC_TO_TIMESTAMP(UTC_USEC_TO_MONTH(TIMESTAMP_TO_USEC(DR.startTime))), 0, "MONTH") as startDate,
+      DATE_ADD(USEC_TO_TIMESTAMP(UTC_USEC_TO_MONTH(TIMESTAMP_TO_USEC(DR.startTime))), 1, "MONTH") as endDate,
+      D.companyId as companyId 
+    from (
+            SELECT REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') as displayId, timestamp as startTime 
+            from TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -6, "MONTH"), CURRENT_TIMESTAMP())
+            where protoPayload.appId='s~rvaserver2'
+    ) DR 
+    inner join (select max(id) as id, displayId from [rise-core-log:coreData.displays] where appId = 's~rvaserver2' group by displayId) D1 on DR.displayId = D1.displayId
+    inner join (select id, companyId from [rise-core-log:coreData.displays] where appId = 's~rvaserver2') D on D1.id = D.id
+    ),
+  
+    --had at least 1 user login during the month
+    (select 
+      STRFTIME_UTC_USEC(TIMESTAMP_TO_USEC(DATE_ADD(USEC_TO_TIMESTAMP(UTC_USEC_TO_MONTH(TIMESTAMP_TO_USEC(lastLogin))), 1, "MONTH")) - 1, "%b-%y") as month,
+      DATE_ADD(USEC_TO_TIMESTAMP(UTC_USEC_TO_MONTH(TIMESTAMP_TO_USEC(lastLogin))), 0, "MONTH") as startDate,
+      DATE_ADD(USEC_TO_TIMESTAMP(UTC_USEC_TO_MONTH(TIMESTAMP_TO_USEC(lastLogin))), 1, "MONTH") as endDate,
+      companyId 
+    from [rise-core-log:coreData.users] 
+    where lastLogin is not null and lastLogin >= DATE_ADD(CURRENT_TIMESTAMP(), -6, "MONTH") and appId='s~rvaserver2'),
+      
+    --had at least 1 active subscription during the month
+    (select month, startDate, endDate, companyId FROM [rise-core-log:dashboards.monthlyList_subscriptions]),
+    
+    -- purchased something during the month  
+    (select CL.month as month, CL.startDate as startDate, CL.endDate as endDate, I.billToId as companyId FROM [rise-store:storeData.invoices] I 
+      cross join [rise-core-log:dashboards.calendar_last_12_months] CL
+    where endDate > paymentDate and startDate <= paymentDate and appId='s~rvaserver2')
+  
+  group by 1, 2, 3, 4) C
+inner join (select max(id), companyId from [rise-core-log:coreData.companies] where appId = 's~rvaserver2' and isTest = false group by companyId) CC on CC.companyId = C.companyId

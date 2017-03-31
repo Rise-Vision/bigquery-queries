@@ -1,0 +1,27 @@
+select 
+  U.totalActivatedDisplays as activatedDisplays, 
+  ifnull(integer(P.madeFirstPurchase), 0) as madeFirstPurchase, 
+  U.totalCreated as totalCreated, 
+  U.totalActivatedDisplays/U.totalCreated as activationRatio,
+  ifnull(integer(P.madeFirstPurchase), 0)/T.total as customerConversionRatio
+from
+(select date, exact_count_distinct(created) as totalCreated, exact_count_distinct(activatedDisplay) as totalActivatedDisplays from 
+(select timestamp(current_date()) as date, C.companyId as created, D.companyId as activatedDisplay from [rise-core-log:coreData.companies] C
+left outer join (
+select C1.companyId as companyId, DR.connectionTime as connectionTime
+from (
+  SELECT REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') as displayId, timestamp as connectionTime  
+  from TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -2, "DAY"), CURRENT_TIMESTAMP())
+  where protoPayload.appId='s~rvaserver2'
+) DR 
+inner join (select displayId, companyId from [rise-core-log:coreData.displays] where appId = 's~rvaserver2'  group by 1, 2) D1 on DR.displayId = D1.displayId
+inner join (select max(id), companyId from [rise-core-log:coreData.companies] where appId = 's~rvaserver2' and isTest = false group by companyId) C1 on C1.companyId = D1.companyId
+) D on C.companyId = D.companyId
+where C.creationDate >= date_add(timestamp(current_date()), -2, "day") and C.creationDate < current_timestamp() and C.appId='s~rvaserver2')
+group by 1) U
+left outer join (select timestamp(current_date()) as date, exact_count_distinct(companyId) as madeFirstPurchase 
+from [rise-core-log:dashboards.customerPaymentInfo] P
+where P.firstPaymentDate >= date_add(timestamp(current_date()), -2, "day") and P.firstPaymentDate < current_timestamp()) P on U.date = P.date
+left outer join (select timestamp(current_date()) as date, exact_count_distinct(companyId) as total from [rise-core-log:dashboards.displayConnectionInfo]
+where connectionTime >= date_add(timestamp(current_date()), -2, "day") and connectionTime < current_timestamp() group by 1 order by 1 desc limit 60) T on U.date = T.date
+order by 1 desc

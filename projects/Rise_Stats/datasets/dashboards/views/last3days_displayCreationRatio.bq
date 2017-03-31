@@ -1,0 +1,24 @@
+select sum(createdDisplays) as totalCompaniesThatCreatedDisplays, sum(createdDisplays)/count(companyId) as ratio from
+(
+select C.companyId as companyId, if(count(D.displayId) > 0, 1, 0) as createdDisplays
+from (
+select companyId 
+from [rise-core-log:coreData.companies]
+where creationDate >= DATE_ADD(CURRENT_TIMESTAMP(), -2, "DAY") and creationDate <= current_timestamp() and appId='s~rvaserver2'
+group by 1
+) C
+left join (
+select DR.displayId as displayId, D.companyId as companyId, max(startTime) as lastConnectionTime, count(startTime) as numberOfConnections
+from (
+  SELECT REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') as displayId, timestamp as startTime  
+  from TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -2, "DAY"), CURRENT_TIMESTAMP())
+  where protoPayload.appId='s~rvaserver2'
+) DR 
+inner join (select max(id) as id, displayId from [rise-core-log:coreData.displays] where appId = 's~rvaserver2' group by displayId) D1 on DR.displayId = D1.displayId
+inner join (select id, companyId from [rise-core-log:coreData.displays] where appId = 's~rvaserver2') D on D1.id = D.id
+inner join (select max(id), companyId from [rise-core-log:coreData.companies] where appId = 's~rvaserver2' and isTest = false group by companyId) CC on CC.companyId = D.companyId
+group by 1, 2
+) D on C.companyId = D.companyId 
+group by 1
+order by 2 desc
+)

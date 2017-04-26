@@ -1,0 +1,25 @@
+SELECT
+  date,
+  SUM(display_count) AS display_count,
+  CASE
+    WHEN LOWER(os) LIKE "%aspb%" THEN "pi"
+    WHEN LOWER(os) LIKE "%win%" THEN "windows"
+    WHEN LOWER(os) LIKE "%linux%" OR LOWER(os) LIKE "%ubuntu%" OR LOWER(os) LIKE "%peppermint%" THEN "linux"
+    ELSE "unknown"
+  END AS os_category
+FROM (
+  SELECT date, os, display_count FROM (
+    SELECT
+      DATE(ts) AS date,
+      EXACT_COUNT_DISTINCT(display_id) AS display_count,
+      os
+    FROM
+      TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+    GROUP BY
+      date, os
+  )
+)
+GROUP BY
+  date, os_category
+ORDER BY
+  date ASC

@@ -1,0 +1,69 @@
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM (
+    SELECT
+      v3_total.date AS date,
+      INTEGER(v3_total.display_count) AS v3_total_display_count,
+      INTEGER(win_total.display_count) AS win_display_v3_count,
+      INTEGER(linux_total.display_count) AS linux_display_v3_count,
+      INTEGER(arm_total.display_count) AS pi_display_v3_count
+    FROM (
+      SELECT
+        date,
+        SUM(display_count) as display_count
+      FROM
+        [client-side-events:Installer_Events.V3DisplayCountByInstallerOSCategoryView] total_by_os
+      GROUP BY
+        date
+    )v3_total
+    LEFT JOIN (
+      SELECT
+        date,
+        SUM(display_count) as display_count
+      FROM
+        [client-side-events:Installer_Events.V3DisplayCountByInstallerOSCategoryView] total_by_os
+      WHERE
+        total_by_os.os_category = "windows"
+      GROUP BY
+        date
+    ) win_total
+    ON
+      win_total.date = v3_total.date
+    LEFT JOIN (
+      SELECT
+        date,
+        SUM(display_count) as display_count
+      FROM
+        [client-side-events:Installer_Events.V3DisplayCountByInstallerOSCategoryView] total_by_os
+      WHERE
+        total_by_os.os_category = "linux"
+      GROUP BY
+        date
+    ) linux_total
+    ON
+      linux_total.date = v3_total.date
+    LEFT JOIN (
+      SELECT
+        date,
+        SUM(display_count) as display_count
+      FROM
+        [client-side-events:Installer_Events.V3DisplayCountByInstallerOSCategoryView] total_by_os
+      WHERE
+        total_by_os.os_category = "pi"
+      GROUP BY
+        date
+    ) arm_total
+    ON
+      arm_total.date = v3_total.date)),
+  (
+  SELECT
+    *
+  FROM
+    [client-side-events:Aggregate_Tables.PlayerCountColumnsByOSCategory]
+  WHERE
+    date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY")))
+ORDER BY
+  date ASC

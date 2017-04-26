@@ -1,6 +1,6 @@
 SELECT
   date,
-  COUNT(DISTINCT display_id) AS display_count
+  EXACT_COUNT_DISTINCT(display_id) AS display_count
 FROM (
   SELECT
     REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS display_id,

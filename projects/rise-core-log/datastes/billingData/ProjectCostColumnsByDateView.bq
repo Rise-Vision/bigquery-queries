@@ -1,0 +1,71 @@
+SELECT
+  d.date,
+  counts.total_display_count AS total_display_count,
+  costs_total.total_cost AS total_cost,
+  costs_contentfinancial2.total_cost AS cost_contentfinancial,
+  costs_rvaserver2.total_cost AS cost_rvaserver2,
+  costs_avid_life_623.total_cost AS cost_avid_life_623,
+  costs_display_messaging_service.total_cost AS cost_display_messaging_service
+FROM
+  (
+    SELECT date from
+      [rise-core-log:billingData.CostByDateAndProjectView]
+    GROUP BY date
+  ) d
+LEFT JOIN
+  (
+    SELECT
+      date, total_cost
+    FROM
+      [rise-core-log:billingData.CostByDateAndProjectView]
+    WHERE
+      project_id = "contentfinancial2"
+  ) costs_contentfinancial2
+ON costs_contentfinancial2.date = d.date
+LEFT JOIN
+  (
+    SELECT
+      date, total_cost
+    FROM
+      [rise-core-log:billingData.CostByDateAndProjectView]
+    WHERE
+      project_id = "rvaserver2"
+  ) costs_rvaserver2
+ON costs_rvaserver2.date = d.date
+LEFT JOIN
+  (
+    SELECT
+      date, total_cost
+    FROM
+      [rise-core-log:billingData.CostByDateAndProjectView]
+    WHERE
+      project_id = "avid-life-623"
+  ) costs_avid_life_623
+ON costs_avid_life_623.date = d.date
+LEFT JOIN
+  (
+    SELECT
+      date, total_cost
+    FROM
+      [rise-core-log:billingData.CostByDateAndProjectView]
+    WHERE
+      project_id = "display-messaging-service"
+  ) costs_display_messaging_service
+ON costs_display_messaging_service.date = d.date
+LEFT JOIN
+  (
+    SELECT
+      date, SUM(total_cost) AS total_cost
+    FROM
+      [rise-core-log:billingData.CostByDateAndProjectView]
+    GROUP BY date
+  ) costs_total
+ON costs_total.date = d.date
+LEFT JOIN
+  [client-side-events:Aggregate_Tables.DisplayCountByInstallerType] counts
+ON
+  d.date = counts.date
+WHERE
+  d.date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+ORDER BY
+  d.date ASC

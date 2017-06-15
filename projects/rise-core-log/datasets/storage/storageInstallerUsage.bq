@@ -2,12 +2,10 @@ SELECT
   DATE(TIMESTAMP(time_micros)) as date, 
   sum(sc_bytes) as bandwidth
 
-FROM TABLE_QUERY([avid-life-623:RiseStorageLogs], 
-  "table_id = 'UsageLogs'+STRFTIME_UTC_USEC(NOW(), '%Y_%-m') OR 
-  table_id = 'UsageLogs'+STRFTIME_UTC_USEC(DATE_ADD(CURRENT_TIMESTAMP(), -1, 'MONTH'), '%Y_%-m') OR 
-  table_id = 'UsageLogs'+STRFTIME_UTC_USEC(DATE_ADD(CURRENT_TIMESTAMP(), -2, 'MONTH'), '%Y_%-m') OR 
-  table_id = 'UsageLogs'+STRFTIME_UTC_USEC(DATE_ADD(CURRENT_TIMESTAMP(), -3, 'MONTH'), '%Y_%-m')"
-  )
+FROM TABLE_DATE_RANGE([avid-life-623:RiseStorageLogs_v2.UsageLogs], 
+  TIMESTAMP(DATE_ADD(CURRENT_TIMESTAMP(), -90, 'DAY')),
+  TIMESTAMP(NOW())
+)
   
 where time_micros > DATE_ADD(CURRENT_TIMESTAMP(), -90, 'DAY')
 and cs_bucket = 'install-versions.risevision.com'

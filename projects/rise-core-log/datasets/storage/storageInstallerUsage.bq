@@ -9,3 +9,5 @@ FROM TABLE_DATE_RANGE([avid-life-623:RiseStorageLogs_v2.UsageLogs],
   
 where time_micros > DATE_ADD(CURRENT_TIMESTAMP(), -90, 'DAY')
 and cs_bucket = 'install-versions.risevision.com'
+group by date
+order by date

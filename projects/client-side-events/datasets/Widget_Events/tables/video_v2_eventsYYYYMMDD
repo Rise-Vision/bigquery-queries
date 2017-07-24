@@ -1,0 +1,12 @@
+Table client-side-events:Widget_Events.video_v2_eventsYYYYMMDD
+
+Schema
+------
+|- event: string (required)
+|- event_details: string
+|- display_id: string
+|- company_id: string
+|- file_url: string
+|- file_format: string
+|- version: string
+|- ts: timestamp (required)

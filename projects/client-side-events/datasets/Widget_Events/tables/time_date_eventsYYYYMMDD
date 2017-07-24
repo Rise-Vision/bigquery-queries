@@ -1,0 +1,9 @@
+Table client-side-events:Widget_Events.time_date_eventsYYYYMMDD
+
+Schema
+------
+|- event: string (required)
+|- event_details: string
+|- display_id: string
+|- company_id: string
+|- ts: string (required)

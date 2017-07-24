@@ -1,0 +1,11 @@
+Table client-side-events:Widget_Events.rss_eventsYYYYMMDD
+
+Schema
+------
+|- event: string (required)
+|- event_details: string
+|- error_details: string
+|- feed_url: string
+|- display_id: string
+|- company_id: string
+|- ts: string (required)

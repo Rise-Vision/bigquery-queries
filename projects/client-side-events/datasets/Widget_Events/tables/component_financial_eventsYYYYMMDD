@@ -1,0 +1,10 @@
+Table client-side-events:Widget_Events.component_financial_eventsYYYYMMDD
+
+Schema
+------
+|- event: string (required)
+|- event_details: string
+|- usage_type: string
+|- version: string
+|- display_id: string
+|- ts: timestamp (required)

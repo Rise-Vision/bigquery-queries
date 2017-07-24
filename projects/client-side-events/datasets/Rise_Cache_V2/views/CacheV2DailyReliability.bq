@@ -1,0 +1,37 @@
+SELECT *
+FROM
+  (SELECT total.date AS total_date,
+          INTEGER(totalNumberOfDisplays) AS totalNumberOfDisplays,
+          IFNULL(INTEGER(error.numberOfDisplays),0) AS errorCount,
+          ((totalNumberOfDisplays-IFNULL(INTEGER(error.numberOfDisplays),0))/totalNumberOfDisplays) AS Reliability,
+   FROM
+     ( SELECT COUNT(DISTINCT display_id) AS totalNumberOfDisplays,
+              DATE(ts) AS date
+      FROM TABLE_DATE_RANGE(Rise_Cache_V2.events, DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'), CURRENT_TIMESTAMP())
+      WHERE event = "info"
+        AND event_details LIKE "%is up and running%"
+        AND display_id != "no-displayId"
+      GROUP BY date) total
+   OUTER JOIN EACH
+     ( SELECT COUNT(DISTINCT display_id) AS numberOfDisplays,
+              DATE(ts) AS date
+      FROM
+        ( SELECT display_id,
+                 ts
+         FROM
+           ( SELECT display_id,
+                    TIMESTAMP(ts) ts
+            FROM TABLE_DATE_RANGE(Rise_Cache_V2.events, DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'), CURRENT_TIMESTAMP())
+            WHERE event = "error"
+              AND display_id != "no-displayId"
+              AND event_details <> "Insufficient disk space"
+              AND event_details NOT LIKE "Invalid response%"),
+           ( SELECT display_id,
+                    ts
+            FROM TABLE_DATE_RANGE(Installer_Events.events, DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'), CURRENT_TIMESTAMP())
+            WHERE event="restarting cache"))
+      GROUP BY date) error ON total.date = error.date
+   ORDER BY total.date),
+  (SELECT *
+   FROM[client-side-EVENTS:Aggregate_Tables.CacheV2DailyReliability]
+   WHERE total_date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")))

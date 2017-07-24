@@ -1,0 +1,13 @@
+Table client-side-events:Rise_Cache_V2.eventsYYYYMMDD
+
+Schema
+------
+|- event: string (required)
+|- event_details: string
+|- error_details: string
+|- display_id: string
+|- os: string
+|- cache_version: string
+|- ts: string (required)
+|- file_name: string
+|- file_url: string

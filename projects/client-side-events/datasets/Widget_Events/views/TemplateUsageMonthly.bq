@@ -1,0 +1,10 @@
+SELECT COUNT(DISTINCT display_id) AS numberOfDisplays,
+       template_name,
+       STRFTIME_UTC_USEC(TIMESTAMP_TO_USEC(TIMESTAMP(ts)), "%b-%y") date
+FROM TABLE_DATE_RANGE(Widget_Events.template_events, DATE_ADD(CURRENT_TIMESTAMP(), -12, 'MONTH'), CURRENT_TIMESTAMP())
+WHERE event = 'load'
+  AND display_id NOT IN ('preview',
+                         '"display_id"',
+                         '"displayId"')
+GROUP BY template_name, date
+ORDER BY date

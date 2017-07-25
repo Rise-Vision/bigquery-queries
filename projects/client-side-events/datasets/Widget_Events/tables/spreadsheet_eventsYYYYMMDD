@@ -1,0 +1,13 @@
+Table client-side-events:Widget_Events.spreadsheet_eventsYYYYMMDD
+
+Schema
+------
+|- event: string (required)
+|- event_details: string
+|- error_details: string
+|- url: string
+|- display_id: string
+|- company_id: string
+|- ts: timestamp (required)
+|- api_key: string
+|- request_url: string

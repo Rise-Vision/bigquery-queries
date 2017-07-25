@@ -1,0 +1,9 @@
+Table client-side-events:Widget_Events.template_eventsYYYYMMDD
+
+Schema
+------
+|- event: string (required)
+|- display_id: string
+|- template_id: string (required)
+|- template_name: string
+|- ts: timestamp (required)

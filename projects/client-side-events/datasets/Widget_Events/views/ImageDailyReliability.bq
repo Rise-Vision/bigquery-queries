@@ -1,0 +1,33 @@
+SELECT *
+FROM
+  (SELECT INTEGER(usageCount) AS usageCount,
+          IFNULL(INTEGER(errorCount),0) AS errorCount,
+          ((usageCount-IFNULL(INTEGER(errorCount),0))/usageCount) AS Reliability,
+          usage.date AS usage_date
+   FROM
+     (SELECT COUNT(DISTINCT display_id) AS usageCount,
+             Date(ts) AS date
+      FROM TABLE_DATE_RANGE(Widget_Events.image_events, DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'), CURRENT_TIMESTAMP())
+      WHERE event = 'play'
+        AND display_id NOT IN ('preview',
+                               '"display_id"',
+                               '"displayId"')
+      GROUP BY date) AS USAGE
+   OUTER JOIN EACH
+     (SELECT COUNT(DISTINCT display_id) AS errorCount,
+             Date(ts) AS date
+      FROM TABLE_DATE_RANGE(Widget_Events.image_events, DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'), CURRENT_TIMESTAMP())
+      WHERE event="error"
+        AND event_details IS NOT NULL
+        AND event_details IN ('rise storage error',
+                              'rise cache error',
+                              'storage api error')
+        AND error_details !="The request failed with status code: 404"
+        AND display_id NOT IN ('preview',
+                               '"display_id"',
+                               '"displayId"')
+      GROUP BY date) AS error ON usage.date=error.date
+   ORDER BY usage.date),
+  (SELECT *
+   FROM[client-side-EVENTS:Aggregate_Tables.ImageDailyReliability]
+   WHERE usage_date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")))

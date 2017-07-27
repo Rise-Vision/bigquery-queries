@@ -6,48 +6,257 @@ FROM (
   FROM (
     SELECT
       total.date AS date,
-      INTEGER(total.display_count - v3_api_exclude.display_count + v3.display_count) AS total_display_count,
+      INTEGER(total.display_count) AS total_display_count,
       INTEGER(v3.display_count) AS v3_display_count,
-      INTEGER((total.display_count - v3_api_exclude.display_count - cap.display_count)) AS v2_display_count,
-      INTEGER(cap.display_count) AS cap_display_count
+      INTEGER(v2.display_count) AS v2_display_count,
+      INTEGER(v1.display_count) AS v1_display_count,
+      INTEGER(cap.display_count) AS cap_display_count,
+      INTEGER(cenique.display_count) AS cenique_display_count,
+      INTEGER(android.display_count) AS android_display_count,
+      INTEGER(total.display_count - v3.display_count - v2.display_count - v1.display_count - cap.display_count - cenique.display_count - android.display_count) AS third_part_display_count,
     FROM (
       SELECT
-        DATE(ts) AS date,
+        date,
         EXACT_COUNT_DISTINCT( display_id) AS display_count
       FROM (
-        SELECT
-          REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS display_id,
-          timestamp AS ts,
+        SELECT 
+          display_id, date 
         FROM
-          TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
-        HAVING
-          display_id IS NOT NULL)
+          (SELECT
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS display_id,
+            DATE(timestamp) AS date,
+          FROM
+            TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+          GROUP BY display_id, date
+          HAVING
+            display_id IS NOT NULL), 
+          (SELECT 
+            display_id, DATE(ts) AS date
+          FROM 
+            TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")) 
+          GROUP BY display_id, date))
       GROUP BY
-        date)total
+        date) total
     LEFT JOIN (
       SELECT
         date,
-        display_count
-      FROM
-        [client-side-events:Viewer_Events.APICallsFromV3]) v3_api_exclude
-    ON
-      v3_api_exclude.date = total.date
-    LEFT JOIN (
-      SELECT
-        DATE(ts) AS date,
         EXACT_COUNT_DISTINCT( display_id) AS display_count
       FROM
-        TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+        (SELECT display_id, date FROM
+        (SELECT
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS display_id,
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display/[A-Za-z0-9-]+\?sig.*&pn=([A-Za-z0-9-]+)') AS pn,
+            DATE(timestamp) as date
+          FROM
+            TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+          GROUP BY display_id, date, pn
+          HAVING
+            display_id IS NOT NULL AND
+            pn = "RisePlayerElectron"),
+        (SELECT active.display_id as display_id, active.date as date FROM
+        (SELECT 
+          display_id, DATE(ts) as date
+         FROM 
+          TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+          GROUP by display_id, date)active
+      INNER JOIN
+        (SELECT
+          display_id 
+        FROM
+          [client-side-events:Player_Data.configuration]
+        WHERE 
+          player_name="RisePlayerElectron"
+        GROUP BY display_id) configuration
+      ON
+        active.display_id=configuration.display_id) activeconfiguration)
       GROUP BY
         date)v3
     ON
       total.date=v3.date
     LEFT JOIN (
       SELECT
-        DATE(ts) AS date,
+        date,
+        EXACT_COUNT_DISTINCT( display_id) AS display_count
+      FROM 
+        (SELECT display_id, date FROM
+        (SELECT
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS display_id,
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display/[A-Za-z0-9-]+\?sig.*&pn=([A-Za-z0-9-]+)') AS pn,
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display/[A-Za-z0-9-]+\?sig.*&pv=([A-Za-z0-9-]+)') AS pv,
+            DATE(timestamp) as date
+          FROM
+            TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+          GROUP BY display_id, date, pn, pv
+          HAVING
+            display_id IS NOT NULL AND
+            pn = "RisePlayer" AND
+            (pv LIKE "2015%" OR pv LIKE "2016%")),
+        (SELECT active.display_id as display_id, active.date as date FROM
+        (SELECT 
+          display_id, DATE(ts) as date
+         FROM 
+          TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+          GROUP BY display_id, date)active
+      INNER JOIN
+        (SELECT
+          display_id 
+        FROM
+          [client-side-events:Player_Data.configuration]
+        WHERE 
+          player_name="RisePlayer" AND (player_version LIKE "2015%" OR player_version LIKE "2016%")
+        GROUP BY display_id) configuration
+      ON
+        active.display_id=configuration.display_id) activeconfiguration)
+      GROUP BY
+        date)v2
+    ON
+      total.date = v2.date
+    LEFT JOIN (
+      SELECT
+        date,
         EXACT_COUNT_DISTINCT( display_id) AS display_count
       FROM
-        TABLE_DATE_RANGE([client-side-events:CAP_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+        (SELECT display_id, date FROM
+        (SELECT
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS display_id,
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display/[A-Za-z0-9-]+\?sig.*&pv=([A-Za-z0-9-]+)') AS pv,
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display/[A-Za-z0-9-]+\?sig.*&pn=([A-Za-z0-9-]+)') AS pn,
+            DATE(timestamp) as date
+          FROM
+            TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+          GROUP BY display_id, date, pv, pn
+          HAVING
+            display_id IS NOT NULL AND
+            (pn = "" OR pn IS NULL) AND
+            pv LIKE "2.0%"),
+        (SELECT active.display_id as display_id, active.date as date FROM
+        (SELECT 
+          display_id, DATE(ts) as date 
+         FROM 
+          TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+          GROUP BY display_id, date)active
+      INNER JOIN
+        (SELECT
+          display_id 
+        FROM
+          [client-side-events:Player_Data.configuration]
+        WHERE
+          (player_name = "" OR player_name IS NULL) AND
+          player_version LIKE "2.0%"
+        GROUP BY display_id) configuration
+      ON
+        active.display_id=configuration.display_id) activeconfiguration)
+      GROUP BY
+        date)v1
+    ON
+      total.date = v1.date
+    LEFT JOIN (
+      SELECT
+        date,
+        EXACT_COUNT_DISTINCT( display_id) AS display_count
+      FROM
+        (SELECT display_id, date FROM
+        (SELECT
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS display_id,
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display/[A-Za-z0-9-]+\?sig.*&pn=([A-Za-z0-9-]+)') AS pn,
+            DATE(timestamp) as date
+          FROM
+            TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+          GROUP BY display_id, date, pn
+          HAVING
+            display_id IS NOT NULL AND
+            pn = "Cenique"),
+        (SELECT active.display_id as display_id, active.date as date FROM
+        (SELECT 
+          display_id, DATE(ts) as date 
+         FROM 
+          TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+         GROUP BY display_id, date)active
+      INNER JOIN
+        (SELECT
+          display_id 
+        FROM
+          [client-side-events:Player_Data.configuration]
+        WHERE 
+          player_name="Cenique"
+        GROUP BY display_id) configuration
+      ON
+        active.display_id=configuration.display_id) activeconfiguration)
+      GROUP BY
+        date)cenique
+    ON
+      total.date=cenique.date
+    LEFT JOIN (
+      SELECT
+        date,
+        EXACT_COUNT_DISTINCT( display_id) AS display_count
+      FROM
+        (SELECT display_id, date FROM
+        (SELECT
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS display_id,
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display/[A-Za-z0-9-]+\?sig.*&os=([A-Za-z0-9-]+)') AS os,
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display/[A-Za-z0-9-]+\?sig.*&pn=([A-Za-z0-9-]+)') AS pn,
+            DATE(timestamp) as date
+          FROM
+            TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+          GROUP BY display_id, date, pn, os
+          HAVING
+            display_id IS NOT NULL AND
+            pn != "Cenique" AND
+            os = "Android%"),
+        (SELECT active.display_id as display_id, active.date as date FROM
+        (SELECT 
+          display_id, DATE(ts) as date 
+         FROM 
+          TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+         GROUP BY display_id, date)active
+      INNER JOIN
+        (SELECT
+          display_id 
+        FROM
+          [client-side-events:Player_Data.configuration]
+        WHERE 
+          player_name != "Cenique" AND
+          os_description like "Android%"
+        GROUP BY display_id) configuration
+      ON
+        active.display_id=configuration.display_id) activeconfiguration)
+      GROUP BY
+        date)android
+    ON
+      total.date=android.date
+    LEFT JOIN (
+      SELECT
+        date,
+        EXACT_COUNT_DISTINCT( display_id) AS display_count
+      FROM
+        (SELECT display_id, date FROM
+        (SELECT
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS display_id,
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display/[A-Za-z0-9-]+\?sig.*&pn=([A-Za-z0-9-]+)') AS pn,
+            DATE(timestamp) as date
+          FROM
+            TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+          GROUP BY display_id, date, pn
+          HAVING
+            display_id IS NOT NULL AND
+            pn = "RisePlayerPackagedApp"),
+        (SELECT active.display_id as display_id, active.date as date FROM
+        (SELECT 
+          display_id, DATE(ts) as date 
+         FROM 
+          TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+         GROUP BY display_id, date)active
+      INNER JOIN
+        (SELECT
+          display_id 
+        FROM
+          [client-side-events:Player_Data.configuration]
+        WHERE 
+          player_name="RisePlayerPackagedApp"
+        GROUP BY display_id) configuration
+      ON
+        active.display_id=configuration.display_id) activeconfiguration)
       GROUP BY
         date)cap
     ON

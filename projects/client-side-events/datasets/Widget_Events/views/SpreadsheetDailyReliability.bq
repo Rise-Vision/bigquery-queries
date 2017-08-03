@@ -8,7 +8,7 @@ FROM
    FROM
      (SELECT COUNT(DISTINCT display_id) AS usageCount,
              Date(ts) AS date
-      FROM TABLE_DATE_RANGE(Widget_Events.spreadsheet_events, DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'), CURRENT_TIMESTAMP())
+      FROM TABLE_DATE_RANGE(Widget_Events.spreadsheet_events, DATE_ADD(CURRENT_TIMESTAMP(), -10, 'DAY'), CURRENT_TIMESTAMP())
       WHERE event = 'play'
         AND display_id NOT IN ('preview',
                                '"display_id"',
@@ -17,7 +17,7 @@ FROM
    OUTER JOIN EACH
      (SELECT COUNT(DISTINCT display_id) AS errorCount,
              Date(ts) AS date
-      FROM TABLE_DATE_RANGE(Widget_Events.spreadsheet_events, DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'), CURRENT_TIMESTAMP())
+      FROM TABLE_DATE_RANGE(Widget_Events.spreadsheet_events, DATE_ADD(CURRENT_TIMESTAMP(), -10, 'DAY'), CURRENT_TIMESTAMP())
       WHERE event = 'error'
         AND event_details != 'spreadsheet not published'
         AND NOT error_details CONTAINS "400" //403 results WHEN spreadsheet IS NOT PUBLIC WITH link. We SHOW msg IN widget & settings. NOTHING
@@ -32,10 +32,10 @@ FROM
    OUTER JOIN EACH
      (SELECT COUNT(DISTINCT display_id) AS componentUsageCount,
              Date(ts) AS date
-      FROM TABLE_DATE_RANGE(Widget_Events.component_sheet_events, DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'), CURRENT_TIMESTAMP())
+      FROM TABLE_DATE_RANGE(Widget_Events.component_sheet_events, DATE_ADD(CURRENT_TIMESTAMP(), -10, 'DAY'), CURRENT_TIMESTAMP())
       WHERE usage_type = 'standalone'
       GROUP BY date) componentUsage ON usage.date=componentUsage.date
    ORDER BY usage.date),
   (SELECT *
    FROM[client-side-EVENTS:Aggregate_Tables.SpreadsheetDailyReliability]
-   WHERE usage_date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")))
+   WHERE usage_date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY")))

@@ -13,7 +13,7 @@ FROM (
       display_id,
       ts
     FROM
-      TABLE_DATE_RANGE(Widget_Events.video_v2_events, DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'), CURRENT_TIMESTAMP())
+      TABLE_DATE_RANGE(Widget_Events.video_v2_events, DATE_ADD(CURRENT_TIMESTAMP(), -10, 'DAY'), CURRENT_TIMESTAMP())
     WHERE
       event = 'play'
       AND display_id NOT IN ('preview',
@@ -52,7 +52,7 @@ OUTER JOIN EACH (
           event AS error,
           ts
         FROM
-          TABLE_DATE_RANGE(Widget_Events.video_v2_events, DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'), CURRENT_TIMESTAMP())
+          TABLE_DATE_RANGE(Widget_Events.video_v2_events, DATE_ADD(CURRENT_TIMESTAMP(), -10, 'DAY'), CURRENT_TIMESTAMP())
         WHERE
           event IN ('rise storage error',
             'storage api error')
@@ -64,7 +64,7 @@ OUTER JOIN EACH (
           event_details AS error,
           ts
         FROM
-          TABLE_DATE_RANGE(Widget_Events.video_v2_events, DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'), CURRENT_TIMESTAMP())
+          TABLE_DATE_RANGE(Widget_Events.video_v2_events, DATE_ADD(CURRENT_TIMESTAMP(), -10, 'DAY'), CURRENT_TIMESTAMP())
         WHERE
           event IN ('player error')
           AND (event_details = 'video - Error loading media: File could not be played'
@@ -76,7 +76,7 @@ OUTER JOIN EACH (
           CONCAT('rise cache error - ', event_details) AS error,
           ts
         FROM
-          TABLE_DATE_RANGE(Widget_Events.video_v2_events, DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'), CURRENT_TIMESTAMP())
+          TABLE_DATE_RANGE(Widget_Events.video_v2_events, DATE_ADD(CURRENT_TIMESTAMP(), -10, 'DAY'), CURRENT_TIMESTAMP())
         WHERE
           event IN ('rise cache error')
           AND event_details != 'The request failed with status code: 404'
@@ -104,4 +104,4 @@ ORDER BY
 (SELECT
     * from[client-side-events:Aggregate_Tables.VideoDailyReliability]
   WHERE
-    usage_date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")))
+    usage_date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY")))

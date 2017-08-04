@@ -7,7 +7,7 @@ FROM
    FROM
      (SELECT COUNT(DISTINCT display_id) AS usageCount,
              Date(ts) AS date
-      FROM TABLE_DATE_RANGE(Widget_Events.text_events, DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'), CURRENT_TIMESTAMP())
+      FROM TABLE_DATE_RANGE(Widget_Events.text_events, DATE_ADD(CURRENT_TIMESTAMP(), -10, 'DAY'), CURRENT_TIMESTAMP())
       WHERE event = 'play'
         AND display_id NOT IN ('preview',
                                '"display_id"',
@@ -16,7 +16,7 @@ FROM
    OUTER JOIN EACH
      (SELECT COUNT(DISTINCT display_id) AS errorCount,
              Date(ts) AS date
-      FROM TABLE_DATE_RANGE(Widget_Events.text_events, DATE_ADD(CURRENT_TIMESTAMP(), -1, 'DAY'), CURRENT_TIMESTAMP())
+      FROM TABLE_DATE_RANGE(Widget_Events.text_events, DATE_ADD(CURRENT_TIMESTAMP(), -10, 'DAY'), CURRENT_TIMESTAMP())
       WHERE event="error"
         AND event_details IS NOT NULL
         AND event_details IN ('Google font not loaded')
@@ -27,4 +27,4 @@ FROM
    ORDER BY usage.date),
   (SELECT *
    FROM[client-side-EVENTS:Aggregate_Tables.TextDailyReliability]
-   WHERE usage_date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")))
+   WHERE usage_date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY")))

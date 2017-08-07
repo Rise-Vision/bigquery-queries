@@ -1,0 +1,14 @@
+Table client-side-events:Aggregate_Tables.DisplayInfo
+
+Schema
+------
+|- displayId: string
+|- connectionTime: string
+|- display_id: string
+|- companyId: string
+|- os: string
+|- pn: string
+|- pv: string
+|- offline_subscription: boolean
+|- useChannel: boolean
+|- startedOfflineCount: integer

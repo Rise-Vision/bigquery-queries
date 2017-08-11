@@ -1,29 +1,149 @@
-Select * from
-(select DR.displayId as displayId, USEC_TO_TIMESTAMP(UTC_USEC_TO_DAY(TIMESTAMP_TO_USEC(DR.connectionTime))) as connectionTime, C1.companyId as companyId, DR.os as os, DR.pn as pn, DR.pv as pv, DR.offline_subscription as offline_subscription, IFNULL(DC.useChannel, false) as useChannel from ( SELECT MAX(connectionTime) AS connectionTime, displayId, os, pn, pv, offline_subscription FROM (
-         select REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') as displayId,
-         REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display/[A-Za-z0-9-]+\?sig.*&os=([A-Za-z0-9-:]+)') AS os,
-         REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display/[A-Za-z0-9-]+\?sig.*&pn=([A-Za-z0-9-]+)') AS pn,
-         REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display/[A-Za-z0-9-]+\?sig.*&pv=([A-Za-z0-9-]+)') AS pv,
-         timestamp as connectionTime
-                                 from TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(USEC_TO_TIMESTAMP(UTC_USEC_TO_DAY(TIMESTAMP_TO_USEC(CURRENT_TIMESTAMP()))), -1, "DAY"), DATE_ADD(USEC_TO_TIMESTAMP(UTC_USEC_TO_DAY(TIMESTAMP_TO_USEC(CURRENT_TIMESTAMP()))), -1, "DAY")) where REGEXP_MATCH(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') and protoPayload.appId='s~rvaserver2'), (
-         SELECT viewer.displayId as displayId, viewer.connectionTime as connectionTime, configuration.os_description as os, configuration.player_name as pn, configuration.player_version as pv, configuration.offline_subscription as offline_subscription from (
-                                 SELECT display_id AS displayId, MAX(ts) AS connectionTime FROM TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(USEC_TO_TIMESTAMP(UTC_USEC_TO_DAY(TIMESTAMP_TO_USEC(CURRENT_TIMESTAMP()))), -1, "DAY"), DATE_ADD(USEC_TO_TIMESTAMP(UTC_USEC_TO_DAY(TIMESTAMP_TO_USEC(CURRENT_TIMESTAMP()))), -1, "DAY")) GROUP BY displayId ) as viewer
-         inner join
-         (select all.display_id as display_id, all.os_description as os_description, all.player_version as player_version, all.player_name as player_name, all.ts, all.offline_subscription as offline_subscription from [client-side-events:Player_Data.configuration] as all
-         inner join (select display_id, MAX(ts) as maxTs from [client-side-events:Player_Data.configuration] group by display_id) as max
-         on all.display_id=max.display_id and all.ts=max.maxTs) as configuration
-         on viewer.displayId=configuration.display_id) GROUP BY displayId, os, pn, pv, offline_subscription ) DR
-                                 inner join (select displayId, companyId from [rise-core-log:coreData.displays] where appId = 's~rvaserver2'  group by 1, 2) D1 on DR.displayId = D1.displayId
-                                 inner join (select max(id) as id, companyId from [rise-core-log:coreData.companies] where appId = 's~rvaserver2' group by companyId) C1 on C1.companyId = D1.companyId
-                                 inner join (select id from [rise-core-log:coreData.companies] where appId = 's~rvaserver2' and isTest = false) C2 on C1.id = C2.id
-                                 left join (select REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') as displayId, IF(IFNULL(REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)'),"") = "", false, true) as useChannel from TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(USEC_TO_TIMESTAMP(UTC_USEC_TO_DAY(TIMESTAMP_TO_USEC(CURRENT_TIMESTAMP()))), -1, "DAY"), DATE_ADD(USEC_TO_TIMESTAMP(UTC_USEC_TO_DAY(TIMESTAMP_TO_USEC(CURRENT_TIMESTAMP()))), -1, "DAY")) where REGEXP_MATCH(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)\/channel')  and protoPayload.appId='s~rvaserver2') DC on DR.displayId = DC.displayId
-         WHERE os is not null and pn is not null and pv is not null
-                                 group by 1, 2, 3, 4, 5 , 6, 7, 8),
-        (
+SELECT
+  *
+FROM (
+  SELECT
+    DR.displayId AS displayId,
+    USEC_TO_TIMESTAMP(UTC_USEC_TO_DAY(TIMESTAMP_TO_USEC(DR.connectionTime))) AS connectionTime,
+    C1.companyId AS companyId,
+    DR.os AS os,
+    DR.pn AS pn,
+    DR.pv AS pv,
+    DR.offline_subscription AS offline_subscription,
+    IFNULL(DC.useChannel, FALSE) AS useChannel
+  FROM (
+    SELECT
+      MAX(connectionTime) AS connectionTime,
+      displayId,
+      os,
+      pn,
+      pv,
+      offline_subscription
+    FROM (
+      SELECT
+        REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS displayId,
+        REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display/[A-Za-z0-9-]+\?sig.*&os=([A-Za-z0-9-:]+)') AS os,
+        REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display/[A-Za-z0-9-]+\?sig.*&pn=([A-Za-z0-9-]+)') AS pn,
+        REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display/[A-Za-z0-9-]+\?sig.*&pv=([A-Za-z0-9-]+)') AS pv,
+        timestamp AS connectionTime
+      FROM
+        TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(USEC_TO_TIMESTAMP(UTC_USEC_TO_DAY(TIMESTAMP_TO_USEC(CURRENT_TIMESTAMP()))), -1, "DAY"), DATE_ADD(USEC_TO_TIMESTAMP(UTC_USEC_TO_DAY(TIMESTAMP_TO_USEC(CURRENT_TIMESTAMP()))), -1, "DAY"))
+      WHERE
+        REGEXP_MATCH(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)')
+        AND protoPayload.appId='s~rvaserver2'),
+      (
+      SELECT
+        viewer.displayId AS displayId,
+        viewer.connectionTime AS connectionTime,
+        configuration.os_description AS os,
+        configuration.player_name AS pn,
+        configuration.player_version AS pv,
+        configuration.offline_subscription AS offline_subscription
+      FROM (
+        SELECT
+          display_id AS displayId,
+          MAX(ts) AS connectionTime
+        FROM
+          TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(USEC_TO_TIMESTAMP(UTC_USEC_TO_DAY(TIMESTAMP_TO_USEC(CURRENT_TIMESTAMP()))), -1, "DAY"), DATE_ADD(USEC_TO_TIMESTAMP(UTC_USEC_TO_DAY(TIMESTAMP_TO_USEC(CURRENT_TIMESTAMP()))), -1, "DAY"))
+        GROUP BY
+          displayId ) AS viewer
+      INNER JOIN (
+        SELECT
+          all.display_id AS display_id,
+          all.os_description AS os_description,
+          all.player_version AS player_version,
+          all.player_name AS player_name,
+          all.ts,
+          all.offline_subscription AS offline_subscription
+        FROM
+          [client-side-events:Player_Data.configuration] AS all
+        INNER JOIN (
+          SELECT
+            display_id,
+            MAX(ts) AS maxTs
+          FROM
+            [client-side-events:Player_Data.configuration]
+          GROUP BY
+            display_id) AS max
+        ON
+          all.display_id=max.display_id
+          AND all.ts=max.maxTs) AS configuration
+      ON
+        viewer.displayId=configuration.display_id)
+    GROUP BY
+      displayId,
+      os,
+      pn,
+      pv,
+      offline_subscription ) DR
+  INNER JOIN (
+    SELECT
+      displayId,
+      companyId
+    FROM
+      [rise-core-log:coreData.displays]
+    WHERE
+      appId = 's~rvaserver2'
+    GROUP BY
+      1,
+      2) D1
+  ON
+    DR.displayId = D1.displayId
+  INNER JOIN (
+    SELECT
+      MAX(id) AS id,
+      companyId
+    FROM
+      [rise-core-log:coreData.companies]
+    WHERE
+      appId = 's~rvaserver2'
+    GROUP BY
+      companyId) C1
+  ON
+    C1.companyId = D1.companyId
+  INNER JOIN (
+    SELECT
+      id
+    FROM
+      [rise-core-log:coreData.companies]
+    WHERE
+      appId = 's~rvaserver2'
+      AND isTest = FALSE) C2
+  ON
+    C1.id = C2.id
+  LEFT JOIN (
+    SELECT
+      REGEXP_EXTRACT(protoPayload.line.logMessage,r'Display: ([A-Za-z0-9-:]+) \(channelId:') AS displayId,
+      IF(IFNULL(REGEXP_EXTRACT(protoPayload.line.logMessage,r'Display: ([A-Za-z0-9-:]+) \(channelId:'),"") = "", FALSE, TRUE) AS useChannel
+    FROM
+      FLATTEN((
+        SELECT
+          protoPayload.line.logMessage
+        FROM
+          TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(USEC_TO_TIMESTAMP(UTC_USEC_TO_DAY(TIMESTAMP_TO_USEC(CURRENT_TIMESTAMP()))), -1, "DAY"), DATE_ADD(USEC_TO_TIMESTAMP(UTC_USEC_TO_DAY(TIMESTAMP_TO_USEC(CURRENT_TIMESTAMP()))), -1, "DAY"))
+        WHERE
+          protoPayload.resource CONTAINS '_ah/channel'
+          AND protoPayload.line.logMessage CONTAINS 'com.risevision.core.channels.PresenceServlet doPost'), protoPayload.line.logMessage)) DC
+  ON
+    DR.displayId = DC.displayId
+  WHERE
+    os IS NOT NULL
+    AND pn IS NOT NULL
+    AND pv IS NOT NULL
+  GROUP BY
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8),
+  (
   SELECT
     *
   FROM
     [client-side-events:Aggregate_Tables.DisplayInfo]
   WHERE
     connectionTime < DATE_ADD(USEC_TO_TIMESTAMP(UTC_USEC_TO_DAY(TIMESTAMP_TO_USEC(CURRENT_TIMESTAMP()))), -1, "DAY"))
-  order by connectionTime
+ORDER BY
+  connectionTime

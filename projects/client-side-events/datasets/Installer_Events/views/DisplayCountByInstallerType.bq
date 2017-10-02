@@ -19,8 +19,8 @@ FROM (
         date,
         EXACT_COUNT_DISTINCT( display_id) AS display_count
       FROM (
-        SELECT 
-          display_id, date 
+        SELECT
+          display_id, date
         FROM
           (SELECT
             REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS display_id,
@@ -29,11 +29,11 @@ FROM (
             TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
           GROUP BY display_id, date
           HAVING
-            display_id IS NOT NULL), 
-          (SELECT 
+            display_id IS NOT NULL),
+          (SELECT
             display_id, DATE(ts) AS date
-          FROM 
-            TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")) 
+          FROM
+            TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
           GROUP BY display_id, date))
       GROUP BY
         date) total
@@ -54,18 +54,43 @@ FROM (
             display_id IS NOT NULL AND
             pn = "RisePlayerElectron"),
         (SELECT active.display_id as display_id, active.date as date FROM
-        (SELECT 
+        (SELECT
           display_id, DATE(ts) as date
-         FROM 
+         FROM
           TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
           GROUP by display_id, date)active
       INNER JOIN
         (SELECT
-          display_id 
+          display_id
         FROM
           [client-side-events:Player_Data.configuration]
-        WHERE 
-          player_name="RisePlayerElectron"
+        WHERE
+          player_name="RisePlayerElectron" AND display_id NOT IN (SELECT
+  t.display_id
+FROM
+  [client-side-events:Player_Data.configuration] t
+INNER JOIN (
+  SELECT
+    display_id,
+    MAX(ts) maxTs
+  FROM
+    [client-side-events:Player_Data.configuration]
+  GROUP BY
+    display_id) tm
+ON
+  t.display_id=tm.display_id
+  AND t.ts=tm.maxTs
+WHERE
+    (player_name != "Cenique"
+      AND os_description LIKE "Android%")
+    OR player_name="Cenique"
+    OR ((player_name = ""
+        OR player_name IS NULL)
+      AND player_version LIKE "2.0%")
+    OR player_name="RisePlayerPackagedApp"
+    OR (player_name="RisePlayer"
+      AND (player_version LIKE "2015%"
+        OR player_version LIKE "2016%")))
         GROUP BY display_id) configuration
       ON
         active.display_id=configuration.display_id) activeconfiguration)
@@ -77,7 +102,7 @@ FROM (
       SELECT
         date,
         EXACT_COUNT_DISTINCT( display_id) AS display_count
-      FROM 
+      FROM
         (SELECT display_id, date FROM
         (SELECT
             REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS display_id,
@@ -92,18 +117,33 @@ FROM (
             pn = "RisePlayer" AND
             (pv LIKE "2015%" OR pv LIKE "2016%")),
         (SELECT active.display_id as display_id, active.date as date FROM
-        (SELECT 
+        (SELECT
           display_id, DATE(ts) as date
-         FROM 
+         FROM
           TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
           GROUP BY display_id, date)active
       INNER JOIN
         (SELECT
-          display_id 
+          display_id
         FROM
           [client-side-events:Player_Data.configuration]
-        WHERE 
-          player_name="RisePlayer" AND (player_version LIKE "2015%" OR player_version LIKE "2016%")
+        WHERE
+          player_name="RisePlayer" AND (player_version LIKE "2015%" OR player_version LIKE "2016%") AND display_id NOT IN (SELECT
+  t.display_id
+FROM
+  [client-side-events:Player_Data.configuration] t
+INNER JOIN (
+  SELECT
+    display_id,
+    MAX(ts) maxTs
+  FROM
+    [client-side-events:Player_Data.configuration]
+  GROUP BY
+    display_id) tm
+ON
+  t.display_id=tm.display_id
+  AND t.ts=tm.maxTs
+WHERE (player_name != "Cenique" AND os_description like "Android%") OR player_name="Cenique" OR ((player_name = "" OR player_name IS NULL) AND player_version LIKE "2.0%") OR player_name="RisePlayerPackagedApp" OR player_name="RisePlayerElectron")
         GROUP BY display_id) configuration
       ON
         active.display_id=configuration.display_id) activeconfiguration)
@@ -130,19 +170,34 @@ FROM (
             (pn = "" OR pn IS NULL) AND
             pv LIKE "2.0%"),
         (SELECT active.display_id as display_id, active.date as date FROM
-        (SELECT 
-          display_id, DATE(ts) as date 
-         FROM 
+        (SELECT
+          display_id, DATE(ts) as date
+         FROM
           TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
           GROUP BY display_id, date)active
       INNER JOIN
         (SELECT
-          display_id 
+          display_id
         FROM
           [client-side-events:Player_Data.configuration]
         WHERE
           (player_name = "" OR player_name IS NULL) AND
-          player_version LIKE "2.0%"
+          player_version LIKE "2.0%" AND display_id NOT IN (SELECT
+  t.display_id
+FROM
+  [client-side-events:Player_Data.configuration] t
+INNER JOIN (
+  SELECT
+    display_id,
+    MAX(ts) maxTs
+  FROM
+    [client-side-events:Player_Data.configuration]
+  GROUP BY
+    display_id) tm
+ON
+  t.display_id=tm.display_id
+  AND t.ts=tm.maxTs
+WHERE (player_name != "Cenique" AND os_description like "Android%") OR player_name="Cenique" OR player_name="RisePlayerPackagedApp" OR (player_name="RisePlayer" AND (player_version LIKE "2015%" OR player_version LIKE "2016%")) OR player_name="RisePlayerElectron")
         GROUP BY display_id) configuration
       ON
         active.display_id=configuration.display_id) activeconfiguration)
@@ -167,18 +222,33 @@ FROM (
             display_id IS NOT NULL AND
             pn = "Cenique"),
         (SELECT active.display_id as display_id, active.date as date FROM
-        (SELECT 
-          display_id, DATE(ts) as date 
-         FROM 
+        (SELECT
+          display_id, DATE(ts) as date
+         FROM
           TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
          GROUP BY display_id, date)active
       INNER JOIN
         (SELECT
-          display_id 
+          display_id
         FROM
           [client-side-events:Player_Data.configuration]
-        WHERE 
-          player_name="Cenique"
+        WHERE
+          player_name="Cenique" AND display_id NOT IN (SELECT
+  t.display_id
+FROM
+  [client-side-events:Player_Data.configuration] t
+INNER JOIN (
+  SELECT
+    display_id,
+    MAX(ts) maxTs
+  FROM
+    [client-side-events:Player_Data.configuration]
+  GROUP BY
+    display_id) tm
+ON
+  t.display_id=tm.display_id
+  AND t.ts=tm.maxTs
+WHERE (player_name != "Cenique" AND os_description like "Android%") OR player_name="RisePlayerPackagedApp" OR ((player_name = "" OR player_name IS NULL) AND player_version LIKE "2.0%") OR (player_name="RisePlayer" AND (player_version LIKE "2015%" OR player_version LIKE "2016%")) OR player_name="RisePlayerElectron")
         GROUP BY display_id) configuration
       ON
         active.display_id=configuration.display_id) activeconfiguration)
@@ -205,19 +275,34 @@ FROM (
             pn != "Cenique" AND
             os = "Android%"),
         (SELECT active.display_id as display_id, active.date as date FROM
-        (SELECT 
-          display_id, DATE(ts) as date 
-         FROM 
+        (SELECT
+          display_id, DATE(ts) as date
+         FROM
           TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
          GROUP BY display_id, date)active
       INNER JOIN
         (SELECT
-          display_id 
+          display_id
         FROM
           [client-side-events:Player_Data.configuration]
-        WHERE 
+        WHERE
           player_name != "Cenique" AND
-          os_description like "Android%"
+          os_description like "Android%" AND display_id NOT IN (SELECT
+  t.display_id
+FROM
+  [client-side-events:Player_Data.configuration] t
+INNER JOIN (
+  SELECT
+    display_id,
+    MAX(ts) maxTs
+  FROM
+    [client-side-events:Player_Data.configuration]
+  GROUP BY
+    display_id) tm
+ON
+  t.display_id=tm.display_id
+  AND t.ts=tm.maxTs
+WHERE player_name="RisePlayerPackagedApp" OR player_name="Cenique" OR ((player_name = "" OR player_name IS NULL) AND player_version LIKE "2.0%") OR (player_name="RisePlayer" AND (player_version LIKE "2015%" OR player_version LIKE "2016%")) OR player_name="RisePlayerElectron")
         GROUP BY display_id) configuration
       ON
         active.display_id=configuration.display_id) activeconfiguration)
@@ -242,19 +327,33 @@ FROM (
             display_id IS NOT NULL AND
             pn = "RisePlayerPackagedApp"),
         (SELECT active.display_id as display_id, active.date as date FROM
-        (SELECT 
-          display_id, DATE(ts) as date 
-         FROM 
+        (SELECT
+          display_id, DATE(ts) as date
+         FROM
           TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
          GROUP BY display_id, date)active
       INNER JOIN
         (SELECT
-          display_id 
+          display_id
         FROM
           [client-side-events:Player_Data.configuration]
-        WHERE 
-          player_name="RisePlayerPackagedApp"
-        GROUP BY display_id) configuration
+        WHERE
+          player_name="RisePlayerPackagedApp" AND display_id NOT IN (SELECT
+  t.display_id
+FROM
+  [client-side-events:Player_Data.configuration] t
+INNER JOIN (
+  SELECT
+    display_id,
+    MAX(ts) maxTs
+  FROM
+    [client-side-events:Player_Data.configuration]
+  GROUP BY
+    display_id) tm
+ON
+  t.display_id=tm.display_id
+  AND t.ts=tm.maxTs
+WHERE (player_name != "Cenique" AND os_description like "Android%") OR player_name="Cenique" OR ((player_name = "" OR player_name IS NULL) AND player_version LIKE "2.0%") OR (player_name="RisePlayer" AND (player_version LIKE "2015%" OR player_version LIKE "2016%")) OR player_name="RisePlayerElectron")) configuration
       ON
         active.display_id=configuration.display_id) activeconfiguration)
       GROUP BY

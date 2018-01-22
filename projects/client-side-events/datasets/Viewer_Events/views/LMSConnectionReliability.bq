@@ -8,7 +8,7 @@ FROM
        (SELECT COUNT(DISTINCT display_id) AS attemptCount,
                Date(ts) AS date
         FROM TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -0, 'DAY'), CURRENT_TIMESTAMP())
-        WHERE installer_version = "2018.01.09.21.28"
+        WHERE installer_version >= "2018.01.09.21.28"
         and display_id not like "0.%"
         GROUP BY date) AS ATTEMPT
      LEFT JOIN
@@ -17,7 +17,7 @@ FROM
          FROM
               (SELECT display_id, Date(ts) AS date
                FROM TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -0, 'DAY'), CURRENT_TIMESTAMP())
-               WHERE installer_version = "2018.01.09.21.28"
+               WHERE installer_version >= "2018.01.09.21.28"
                and display_id not like "0.%"
                GROUP BY date, display_id) AS A
             INNER JOIN
@@ -30,8 +30,8 @@ FROM
                   event = "Attempting LMS connection"
                 GROUP BY
                   display_id, date)
-              where display_id not in
-                (select display_id
+              WHERE display_id not in
+                (SELECT display_id
                 FROM
                   TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -0, 'DAY'), CURRENT_TIMESTAMP())
                 WHERE

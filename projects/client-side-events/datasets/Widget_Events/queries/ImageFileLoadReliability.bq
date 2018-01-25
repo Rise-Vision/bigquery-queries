@@ -1,0 +1,35 @@
+SELECT *
+FROM
+  (SELECT INTEGER(canLoadCount) AS canLoadCount,
+          IFNULL(INTEGER(unsuccessfulCount),0) AS unsuccessfulCount,
+          ((canLoadCount-IFNULL(INTEGER(unsuccessfulCount),0))/canLoadCount) AS Reliability,
+          load.date AS load_date
+   FROM
+     (SELECT COUNT(DISTINCT display_id) AS canLoadCount,
+             Date(ts) AS date
+      FROM TABLE_DATE_RANGE(Widget_Events.image_events, DATE_ADD(CURRENT_TIMESTAMP(), -0, 'DAY'), CURRENT_TIMESTAMP())
+      WHERE event = "Test image FILE-UPDATE"
+      AND display_id NOT IN ("preview", '"display_id"', '"displayId"')
+      GROUP BY date) AS LOAD
+   LEFT JOIN
+     (SELECT COUNT(DISTINCT display_id) AS unsuccessfulCount,
+             date
+      FROM (SELECT display_id, date FROM
+               (SELECT display_id, Date(ts) as date
+                FROM
+                  TABLE_DATE_RANGE(Widget_Events.image_events, DATE_ADD(CURRENT_TIMESTAMP(), -0, 'DAY'), CURRENT_TIMESTAMP())
+                WHERE
+                  event = "Test image FILE-UPDATE"
+                AND display_id NOT IN ("preview", '"display_id"', '"displayId"')
+                GROUP BY display_id, date)
+             WHERE display_id not in
+               (SELECT display_id
+                FROM
+                  TABLE_DATE_RANGE(Widget_Events.image_events, DATE_ADD(CURRENT_TIMESTAMP(), -0, 'DAY'), CURRENT_TIMESTAMP())
+                WHERE
+                  event = "Test image loaded"
+                AND display_id NOT IN ("preview", '"display_id"', '"displayId"')
+                GROUP BY display_id)
+             GROUP BY display_id, date)
+      GROUP BY date) AS UNSUCCESSFUL ON load.date=unsuccessful.date
+   ORDER BY load.date)

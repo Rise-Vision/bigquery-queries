@@ -1,0 +1,44 @@
+SELECT *
+FROM
+  (SELECT INTEGER(attemptCount) AS attemptCount,
+            IFNULL(INTEGER(unsuccessfulCount),0) AS unsuccessfulCount,
+            ((attemptCount-IFNULL(INTEGER(unsuccessfulCount),0))/attemptCount) AS Reliability,
+            attempt.date AS attempt_date
+     FROM
+       (SELECT COUNT(DISTINCT display_id) AS attemptCount,
+               Date(ts) AS date
+        FROM TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -0, 'DAY'), CURRENT_TIMESTAMP())
+        WHERE installer_version >= "2018.01.09.21.28"
+        and display_id not like "0.%"
+        GROUP BY date) AS ATTEMPT
+     LEFT JOIN
+        (SELECT COUNT(DISTINCT(a.display_id)) as unsuccessfulCount,
+         a.date as date
+         FROM
+              (SELECT display_id, Date(ts) AS date
+               FROM TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -0, 'DAY'), CURRENT_TIMESTAMP())
+               WHERE installer_version >= "2018.01.09.21.28"
+               and display_id not like "0.%"
+               GROUP BY date, display_id) AS A
+            INNER JOIN
+              (SELECT display_id from
+                (SELECT
+                  display_id, Date(ts) as date
+                FROM
+                  TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -0, 'DAY'), CURRENT_TIMESTAMP())
+                WHERE
+                  event = "Attempting LMS connection"
+                GROUP BY
+                  display_id, date)
+              WHERE display_id not in
+                (SELECT display_id
+                FROM
+                  TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -0, 'DAY'), CURRENT_TIMESTAMP())
+                WHERE
+                  event = "LMS connected"
+                GROUP BY
+                  display_id
+                  )
+              GROUP BY display_id
+              ) AS U ON a.display_id=u.display_id GROUP BY date) AS unsuccessful ON attempt.date=unsuccessful.date
+              ORDER BY attempt.date)

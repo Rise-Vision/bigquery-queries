@@ -1,8 +1,19 @@
 SELECT
   project.id AS project_id,
-  date(start_time) AS date,
-  sum(cost) AS total_cost
+  DATE(start_time) AS date,
+  SUM(cost) AS total_cost
 FROM
   [rise-core-log:billingData.gcp_billing_export_00FE29_4FDD82_EF884E]
+WHERE
+  project.id IN ("rvashow2",
+    "rvaviewer-test",
+    "rvaserver2",
+    "rva-media-library-test",
+    "rvacore-test",
+    "avid-life-623",
+    "client-side-events",
+    "display-messaging-service",
+    "messaging-service-180514")
 GROUP BY
-  project_id, date
+  project_id,
+  date

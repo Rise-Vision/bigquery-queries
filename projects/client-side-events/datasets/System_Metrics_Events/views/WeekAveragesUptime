@@ -1,0 +1,34 @@
+SELECT * FROM
+(
+  SELECT
+    EXACT_COUNT_DISTINCT(display_id) as count,
+    YEAR(ts) AS year,
+    WEEK(TS) AS week,
+    CASE
+      WHEN display_id IN ('784U6HHHYMMQ', 'FB6SAP8CVZNK') THEN 'Raspbian'
+      WHEN display_id IN ('PMPRUBNMRCXE', 'PKZJRKHH8QM3', 'JAQVBQS84SGK', 'V4EFG77W59ME') THEN 'Ubuntu'
+      ELSE 'Windows'
+    END AS platform,
+    ROUND(AVG(cpu_usage)*100) as avgCPUUsage,
+    ROUND(AVG(memory_usage)*100) as avgMemUsage,
+    ROUND(AVG(free_disk)/1024) as freeDiskGB
+  FROM System_Metrics_Events.events
+  WHERE cpu_usage IS NOT NULL AND memory_usage IS NOT NULL AND free_disk IS NOT NULL
+  AND display_id IN
+  (
+    '784U6HHHYMMQ',#Raspbian
+    'FB6SAP8CVZNK',#Raspbian
+    'PMPRUBNMRCXE',#ubuntu 14.04 x 32#ubuntu 14.04 x 32
+    'PKZJRKHH8QM3',#ubuntu 14.04 x 32#ubuntu 14.04 x 64
+    'JAQVBQS84SGK',#ubuntu 14.04 x 32#ubuntu 16.04 x 64
+    'V4EFG77W59ME',#ubuntu 14.04 x 32#ubuntu 16.04 x 64
+    '89YMNGW3J8SE',#windows 10 x 32
+    'MMZ4NHZA3RCG',#windows 10 x 64
+    'REGGBURN2E7J',#windows 7 x 32
+    'NFEUBNQ4A7D6',#windows embedded x 32
+    'DZ7UA3776XJB' #windows 10 x 32
+  )
+  GROUP BY year, week, platform
+  ORDER BY year DESC, week DESC, count DESC
+  LIMIT 1000
+)

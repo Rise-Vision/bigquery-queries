@@ -2,65 +2,131 @@ SELECT
   d.date,
   counts.total_display_count AS total_display_count,
   costs_total.total_cost AS total_cost,
-  costs_contentfinancial2.total_cost AS cost_contentfinancial,
   costs_rvaserver2.total_cost AS cost_rvaserver2,
   costs_avid_life_623.total_cost AS cost_avid_life_623,
-  costs_display_messaging_service.total_cost AS cost_display_messaging_service
-FROM
-  (
-    SELECT date from
-      [rise-core-log:billingData.CostByDateAndProjectView]
-    GROUP BY date
-  ) d
-LEFT JOIN
-  (
-    SELECT
-      date, total_cost
-    FROM
-      [rise-core-log:billingData.CostByDateAndProjectView]
-    WHERE
-      project_id = "contentfinancial2"
-  ) costs_contentfinancial2
-ON costs_contentfinancial2.date = d.date
-LEFT JOIN
-  (
-    SELECT
-      date, total_cost
-    FROM
-      [rise-core-log:billingData.CostByDateAndProjectView]
-    WHERE
-      project_id = "rvaserver2"
-  ) costs_rvaserver2
-ON costs_rvaserver2.date = d.date
-LEFT JOIN
-  (
-    SELECT
-      date, total_cost
-    FROM
-      [rise-core-log:billingData.CostByDateAndProjectView]
-    WHERE
-      project_id = "avid-life-623"
-  ) costs_avid_life_623
-ON costs_avid_life_623.date = d.date
-LEFT JOIN
-  (
-    SELECT
-      date, total_cost
-    FROM
-      [rise-core-log:billingData.CostByDateAndProjectView]
-    WHERE
-      project_id = "display-messaging-service"
-  ) costs_display_messaging_service
-ON costs_display_messaging_service.date = d.date
-LEFT JOIN
-  (
-    SELECT
-      date, SUM(total_cost) AS total_cost
-    FROM
-      [rise-core-log:billingData.CostByDateAndProjectView]
-    GROUP BY date
-  ) costs_total
-ON costs_total.date = d.date
+  (COALESCE(costs_display_messaging_service.total_cost,0) + COALESCE(costs_dc_messaging_service.total_cost,0)) AS cost_messaging,
+  costs_client_side_events.total_cost AS cost_client_side_events,
+  costs_viewer.total_cost AS cost_viewer,
+  costs_viewer_test.total_cost AS cost_viewer_test,
+  costs_media_test.total_cost AS cost_media_library_test,
+  costs_core_test.total_cost AS cost_core_test
+FROM (
+  SELECT
+    date
+  FROM
+    [rise-core-log:billingData.CostByDateAndProjectView]
+  GROUP BY
+    date ) d
+LEFT JOIN (
+  SELECT
+    date,
+    total_cost
+  FROM
+    [rise-core-log:billingData.CostByDateAndProjectView]
+  WHERE
+    project_id = "rvashow2" ) costs_viewer
+ON
+  costs_viewer.date = d.date
+LEFT JOIN (
+  SELECT
+    date,
+    total_cost
+  FROM
+    [rise-core-log:billingData.CostByDateAndProjectView]
+  WHERE
+    project_id = "rvaviewer-test" ) costs_viewer_test
+ON
+  costs_viewer_test.date = d.date
+LEFT JOIN (
+  SELECT
+    date,
+    total_cost
+  FROM
+    [rise-core-log:billingData.CostByDateAndProjectView]
+  WHERE
+    project_id = "rva-media-library-test" ) costs_media_test
+ON
+  costs_media_test.date = d.date
+LEFT JOIN (
+  SELECT
+    date,
+    total_cost
+  FROM
+    [rise-core-log:billingData.CostByDateAndProjectView]
+  WHERE
+    project_id = "rvacore-test" ) costs_core_test
+ON
+  costs_core_test.date = d.date
+LEFT JOIN (
+  SELECT
+    date,
+    total_cost
+  FROM
+    [rise-core-log:billingData.CostByDateAndProjectView]
+  WHERE
+    project_id = "rvaserver2" ) costs_rvaserver2
+ON
+  costs_rvaserver2.date = d.date
+LEFT JOIN (
+  SELECT
+    date,
+    total_cost
+  FROM
+    [rise-core-log:billingData.CostByDateAndProjectView]
+  WHERE
+    project_id = "avid-life-623" ) costs_avid_life_623
+ON
+  costs_avid_life_623.date = d.date
+LEFT JOIN (
+  SELECT
+    date,
+    total_cost
+  FROM
+    [rise-core-log:billingData.CostByDateAndProjectView]
+  WHERE
+    project_id = "messaging-service-180514" ) costs_dc_messaging_service
+ON
+  costs_dc_messaging_service.date = d.date
+LEFT JOIN (
+  SELECT
+    date,
+    total_cost
+  FROM
+    [rise-core-log:billingData.CostByDateAndProjectView]
+  WHERE
+    project_id = "primus-messaging-server-test" ) costs_primus_messaging
+ON
+  costs_primus_messaging.date = d.date
+LEFT JOIN (
+  SELECT
+    date,
+    total_cost
+  FROM
+    [rise-core-log:billingData.CostByDateAndProjectView]
+  WHERE
+    project_id = "display-messaging-service" ) costs_display_messaging_service
+ON
+  costs_display_messaging_service.date = d.date
+LEFT JOIN (
+  SELECT
+    date,
+    SUM(total_cost) AS total_cost
+  FROM
+    [rise-core-log:billingData.CostByDateAndProjectView]
+  GROUP BY
+    date ) costs_total
+ON
+  costs_total.date = d.date
+LEFT JOIN (
+  SELECT
+    date,
+    total_cost
+  FROM
+    [rise-core-log:billingData.CostByDateAndProjectView]
+  WHERE
+    project_id = "client-side-events" ) costs_client_side_events
+ON
+  costs_client_side_events.date = d.date
 LEFT JOIN
   [client-side-events:Aggregate_Tables.DisplayCountByInstallerType] counts
 ON

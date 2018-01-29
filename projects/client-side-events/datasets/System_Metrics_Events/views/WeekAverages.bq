@@ -1,0 +1,15 @@
+SELECT * FROM
+(
+  SELECT
+    EXACT_COUNT_DISTINCT(display_id) as count,
+    YEAR(ts) AS year,
+    WEEK(TS) AS week,
+    ROUND(AVG(cpu_usage)*100) as avgCPUUsage,
+    ROUND(AVG(memory_usage)*100) as avgMemUsage,
+    ROUND(AVG(free_disk)/1024) as freeDiskGB
+  FROM System_Metrics_Events.events
+  WHERE cpu_usage IS NOT NULL AND memory_usage IS NOT NULL AND free_disk IS NOT NULL
+  GROUP BY year, week
+  ORDER BY year DESC, week DESC
+  LIMIT 1000
+)

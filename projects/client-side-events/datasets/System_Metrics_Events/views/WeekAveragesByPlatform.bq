@@ -1,0 +1,43 @@
+SELECT * FROM
+(
+  SELECT
+    EXACT_COUNT_DISTINCT(e.display_id) as count,
+    YEAR(e.ts) AS year,
+    WEEK(e.ts) AS week,
+    p.platform AS platform,
+    ROUND(AVG(e.cpu_usage)*100) as avgCPUUsage,
+    ROUND(AVG(e.memory_usage)*100) as avgMemUsage,
+    ROUND(AVG(e.free_disk)/1024) as freeDiskGB
+  FROM [System_Metrics_Events.events] AS e
+  INNER JOIN
+  (
+    SELECT display_id,
+      CASE
+        WHEN UPPER(a.os_description) CONTAINS "WIN" THEN 'Windows'
+        WHEN UPPER(a.os_description) CONTAINS "UBUNTU" THEN 'Linux'
+        WHEN UPPER(a.os_description) CONTAINS "ARM" THEN 'Raspbian'
+        WHEN UPPER(a.os_description) CONTAINS "LINUX" THEN 'Linux'
+        WHEN UPPER(a.os_description) CONTAINS "LNX" THEN 'Linux'
+        WHEN UPPER(a.os_description) CONTAINS "ANDROID" THEN 'Android'
+        WHEN UPPER(a.os_description) CONTAINS "RSP" THEN 'Raspbian'
+        WHEN UPPER(a.os_description) CONTAINS "CROS" THEN 'ChromeOS'
+        WHEN UPPER(a.os_description) CONTAINS "MAC" THEN 'Mac'
+        WHEN UPPER(a.os_description) CONTAINS "FEDORA" THEN 'Linux'
+        WHEN UPPER(a.os_description) CONTAINS "PEPPERMINT" THEN 'Linux'
+        WHEN UPPER(a.os_description) CONTAINS "UNDEFINED" THEN 'Unknown'
+        WHEN UPPER(a.os_description) = "" THEN 'Unknown'
+        ELSE a.os_description
+      END AS platform,
+    FROM
+    (
+      SELECT display_id, os_description, MAX(ts)
+      FROM [Player_Data.configuration]
+      GROUP BY display_id, os_description
+    ) AS a
+  ) AS p
+  ON e.display_id = p.display_id
+  WHERE e.cpu_usage IS NOT NULL AND e.memory_usage IS NOT NULL AND e.free_disk IS NOT NULL
+  GROUP BY year, week, platform
+  ORDER BY year DESC, week DESC, count DESC
+  LIMIT 1000
+)

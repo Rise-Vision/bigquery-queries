@@ -1,0 +1,101 @@
+#standardSQL
+create temporary function parseDays(s STRING)
+    returns ARRAY<STRUCT<day STRING, active BOOLEAN>>
+    language js as """
+      try {
+        return JSON.parse(s);
+      } catch (e) {
+        return [];
+      }
+    """;
+    
+create temporary function indexOf(displayId STRING, displayList ARRAY<STRING>)
+    returns FLOAT64
+    language js AS """
+      return displayList.indexOf(displayId);
+    """;
+    
+create temporary function productionApp()
+  returns STRING
+    as ('dummy');
+    --as ('s~rvaserver2'); 
+    
+    
+create temporary function currentDate()
+  returns DATE
+    as (date(2018, 2, 2));
+    --as (current_date());
+    
+create temporary function currentTime()
+  returns TIME
+    as (time(21, 20, 22));
+--  as (current_time());
+    
+with
+
+currentDisplays as
+(
+select D.displayId as displayId, D.companyId as companyId, monitoringSchedule, monitoringEmails 
+from `rise-core-log.coreData.displays` D
+inner join (select max(id) as id, displayId from `rise-core-log.coreData.displays` where appId = productionApp() group by displayId) D1 on D.id = D1.id
+inner join (select max(id), companyId from `rise-core-log.coreData.companies` where appId = productionApp() and companyStatus = 1 and (isTest is null or isTest = false) group by companyId) C on D.companyId = C.companyId
+where D.appId = productionApp() and D.status = 1 and D.monitoringEnabled = true and ifnull(monitoringEmails, '') != ''
+),
+
+parsedDisplays as
+(
+select 
+  displayId,
+  companyId, 
+  parse_time("%R", json_extract_scalar(monitoringSchedule, "$.time.start")) as startTime, 
+  parse_time("%R", json_extract_scalar(monitoringSchedule, "$.time.end")) as endTime, 
+  parseDays(json_extract(monitoringSchedule, "$.week")) as weekDays, 
+  monitoringEmails
+from currentDisplays 
+),
+
+currentLicenses as
+(
+select 
+  CS.companyId as companyId, 
+  if(((planSubscriptionStatus = 'Active' or planSubscriptionStatus = 'Cancelled') and date(planCurrentPeriodEndDate) >= currentDate()) or (planSubscriptionStatus = 'Trial' and date(planTrialExpiryDate) >= currentDate()), planPlayerProLicenseCount, 0) + 
+  if(((playerProSubscriptionStatus = 'Active' or planSubscriptionStatus = 'Cancelled') and date(playerProCurrentPeriodEndDate) >= currentDate()), playerProLicenseCount, 0) as totalLicenses, 
+  playerProAssignedDisplays
+from `rise-core-log.coreData.companySubscriptions` CS
+inner join (select max(id) as id, companyId from `rise-core-log.coreData.companySubscriptions` where appId = productionApp() group by companyId) CS1 on CS.id = CS1.id
+where CS.appId = productionApp()
+),
+
+displayAuthorizations as
+(
+select 
+  companyId, 
+  displayId, 
+  CAST(indexOf(displayId, playerProAssignedDisplays ) as INT64) as displayIndex, 
+  if(totalLicenses > CAST(indexOf(displayId, playerProAssignedDisplays ) as INT64), true, false) as displayAuthorized
+from currentLicenses CL
+cross join unnest(CL.playerProAssignedDisplays) as displayId
+),
+
+displaysScheduledToBeMonitored as
+(
+select 
+  companyId, 
+  displayId, 
+  startTime, 
+  endTime, 
+  weekDay, 
+  monitoringEmails
+from parsedDisplays
+cross join unnest(parsedDisplays.weekDays) as weekDay
+where
+  weekDay.active = true and weekDay.day = format_date('%A', currentDate()) and
+  startTime <= currentTime() and currentTime() <= endTime
+)
+
+select 
+  DM.displayId as displayId,
+  DM.monitoringEmails as monitoringEmails
+from displaysScheduledToBeMonitored DM
+inner join displayAuthorizations DA on DM.displayId = DA.displayId and DM.companyId = DA.companyId
+where DA.displayAuthorized = true

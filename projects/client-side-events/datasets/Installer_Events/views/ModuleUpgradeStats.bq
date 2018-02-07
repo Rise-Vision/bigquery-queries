@@ -13,7 +13,6 @@ FROM (
       TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
     WHERE
       display_id NOT LIKE "0.%"
-      AND event = "upgrading modules"
     GROUP BY
       date)a
   LEFT JOIN (

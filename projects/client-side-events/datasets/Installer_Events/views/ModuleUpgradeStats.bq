@@ -8,7 +8,7 @@ FROM (
   FROM (
     SELECT
       DATE(ts) AS date,
-      COUNT (DISTINCT display_id) AS starts
+      EXACT_COUNT_DISTINCT(display_id) AS starts
     FROM
       TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
     WHERE
@@ -19,7 +19,7 @@ FROM (
   LEFT JOIN (
     SELECT
       DATE(ts) AS date,
-      COUNT (DISTINCT display_id) AS completions
+      EXACT_COUNT_DISTINCT(display_id) AS completions
     FROM (
       SELECT
         *,

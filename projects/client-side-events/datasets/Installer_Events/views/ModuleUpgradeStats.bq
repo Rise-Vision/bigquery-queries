@@ -28,14 +28,13 @@ FROM (
         TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")))
     WHERE
       display_id NOT LIKE "0.%"
-      AND event != "upgrade failure"
-      AND display_date IN (
+      AND display_date NOT IN (
       SELECT
         CONCAT(display_id, DATE(ts)) AS display_date
       FROM
         TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
       WHERE
-        event = "upgrading modules")
+        event = "upgrade failure")
     GROUP BY
       date)b
   ON

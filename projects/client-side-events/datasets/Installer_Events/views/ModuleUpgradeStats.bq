@@ -1,0 +1,53 @@
+SELECT
+  *
+FROM (
+  SELECT
+    a.date AS date,
+    INTEGER(a.starts) AS starts,
+    INTEGER(b.completions) AS completions
+  FROM (
+    SELECT
+      DATE(ts) AS date,
+      EXACT_COUNT_DISTINCT(display_id) AS starts
+    FROM
+      TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+    WHERE
+      display_id NOT LIKE "0.%"
+      AND event = "checking for upgrade"
+    GROUP BY
+      date)a
+  LEFT JOIN (
+    SELECT
+      DATE(ts) AS date,
+      EXACT_COUNT_DISTINCT(display_id) AS completions
+    FROM (
+      SELECT
+        display_id, event, ts,
+        CONCAT(display_id, DATE(ts)) AS display_date
+      FROM
+        TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")))
+    WHERE
+      display_id NOT LIKE "0.%"
+      AND event = "install complete"
+      AND display_date NOT IN (
+      SELECT
+        CONCAT(display_id, DATE(ts)) AS display_date
+      FROM
+        TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+      WHERE
+        event = "upgrade failure")
+    GROUP BY
+      date)b
+  ON
+    a.date = b.date
+  ORDER BY
+    date ASC),
+  (
+  SELECT
+    *
+  FROM
+    [client-side-events:Aggregate_Tables.ModuleUpgradeStats]
+  WHERE
+    date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY")))
+ORDER BY
+  date ASC

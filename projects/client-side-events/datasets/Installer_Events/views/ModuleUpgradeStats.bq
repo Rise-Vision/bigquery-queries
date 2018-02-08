@@ -13,6 +13,7 @@ FROM (
       TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
     WHERE
       display_id NOT LIKE "0.%"
+      AND event = "checking for upgrade"
     GROUP BY
       date)a
   LEFT JOIN (
@@ -21,12 +22,13 @@ FROM (
       EXACT_COUNT_DISTINCT(display_id) AS completions
     FROM (
       SELECT
-        *,
+        display_id, event, ts,
         CONCAT(display_id, DATE(ts)) AS display_date
       FROM
         TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")))
     WHERE
       display_id NOT LIKE "0.%"
+      AND event = "install complete"
       AND display_date NOT IN (
       SELECT
         CONCAT(display_id, DATE(ts)) AS display_date

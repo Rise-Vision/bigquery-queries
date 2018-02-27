@@ -13,6 +13,7 @@ FROM (
       TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
     WHERE
       display_id NOT LIKE "0.%"
+      AND installer_version NOT LIKE "%beta_%"
       AND event = "checking for upgrade"
     GROUP BY
       date)a
@@ -28,6 +29,7 @@ FROM (
         TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")))
     WHERE
       display_id NOT LIKE "0.%"
+      AND installer_version NOT LIKE "%beta_%"
       AND event = "install complete"
       AND display_date NOT IN (
       SELECT

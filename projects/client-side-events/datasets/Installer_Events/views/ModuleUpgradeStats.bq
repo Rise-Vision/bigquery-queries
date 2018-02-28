@@ -23,7 +23,7 @@ FROM (
       EXACT_COUNT_DISTINCT(display_id) AS completions
     FROM (
       SELECT
-        display_id, event, ts,
+        display_id, event, installer_version, ts,
         CONCAT(display_id, DATE(ts)) AS display_date
       FROM
         TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")))

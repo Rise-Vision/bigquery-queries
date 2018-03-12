@@ -17,7 +17,7 @@ FROM (
       WHERE
         display_id LIKE '0.%'
         AND event = 'beginning install'
-        AND installer_version NOT LIKE "beta_%"
+        AND installer_version = "XXXX.XX.XX.XX.XX"
       GROUP BY
         date))a
   LEFT JOIN (
@@ -42,11 +42,11 @@ FROM (
         WHERE
           display_id LIKE '0.%'
           AND event = 'beginning install'
-          AND installer_version NOT LIKE "beta_%" ))
+          AND installer_version = "XXXX.XX.XX.XX.XX" ))
     WHERE
       display_id LIKE '0.%'
       AND event = 'install complete'
-      AND installer_version NOT LIKE "beta_%"
+      AND installer_version = "XXXX.XX.XX.XX.XX"
     GROUP BY
       date)b
   ON

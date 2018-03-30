@@ -1,0 +1,72 @@
+#standardSQL
+
+CREATE TEMPORARY FUNCTION daysAgo(days INT64) RETURNS DATE
+AS (
+  DATE_ADD(CURRENT_DATE(), INTERVAL -days DAY)
+);
+
+CREATE TEMPORARY FUNCTION daysAgoSuffix(days INT64) RETURNS STRING
+AS (
+  FORMAT_DATE('%E4Y%m%d', daysAgo(days))
+);
+
+WITH
+
+allDisplays AS (
+  SELECT DATE(ts) AS date, display_id, event
+  FROM `client-side-events.Installer_Events.events*`
+  WHERE _TABLE_SUFFIX BETWEEN daysAgoSuffix(3) AND daysAgoSuffix(1)
+  AND display_id NOT LIKE "0.%"
+  AND installer_version = "xxxx.xx.xx.xx.xx"
+)
+
+SELECT * FROM (
+  SELECT
+    a.date AS date,
+    a.total_count AS total_count,
+    IFNULL(b.failed_count, 0) AS failed_count
+  FROM (
+    SELECT date, COUNT(DISTINCT(display_id)) AS total_count
+    FROM allDisplays
+    GROUP BY date
+  ) a
+  LEFT JOIN (
+    SELECT date, COUNT(DISTINCT(display_id)) AS failed_count
+    FROM (
+      SELECT date, display_id FROM allDisplays
+      WHERE event IN(
+        'viewer launch error', 'viewer webContents crashed', 'watchdog-restart'
+      )
+
+      UNION ALL
+
+      SELECT date, display_id FROM allDisplays
+      WHERE event = 'launching viewer'
+      AND CONCAT(display_id, CAST(date AS STRING)) NOT IN
+      (
+        SELECT CONCAT(display_id, CAST(DATE(ts) AS STRING))
+        FROM `client-side-events.Viewer_Events.events*`
+        WHERE _TABLE_SUFFIX BETWEEN daysAgoSuffix(3) AND daysAgoSuffix(1)
+        AND event = 'startup'
+      )
+
+      UNION ALL
+
+      SELECT DATE(ts) AS date, display_id
+      FROM `client-side-events.Module_Events.watchdog_events`
+      WHERE _PARTITIONTIME < CAST(CURRENT_DATE() AS TIMESTAMP)
+      AND _PARTITIONTIME >= CAST(daysAgo(3) AS TIMESTAMP)
+      AND event = 'module-down'
+      AND event_details = 'player-electron'
+    )
+    GROUP BY date
+  ) b
+  ON a.date = b.date
+
+  UNION ALL
+
+  SELECT date, total_count, failed_count
+  FROM `client-side-events.Aggregate_Tables.PlayerModuleStats`
+  WHERE date < daysAgo(3)
+)
+ORDER BY date ASC

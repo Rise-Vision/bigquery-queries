@@ -1,21 +1,12 @@
 #standardSQL
 
-CREATE TEMPORARY FUNCTION daysAgo(days INT64) RETURNS DATE
-AS (
-  DATE_ADD(CURRENT_DATE(), INTERVAL -days DAY)
-);
-
-CREATE TEMPORARY FUNCTION daysAgoSuffix(days INT64) RETURNS STRING
-AS (
-  FORMAT_DATE('%E4Y%m%d', daysAgo(days))
-);
-
 WITH
 
 allDisplays AS (
   SELECT DATE(ts) AS date, display_id, event
   FROM `client-side-events.Installer_Events.events*`
-  WHERE _TABLE_SUFFIX BETWEEN daysAgoSuffix(3) AND daysAgoSuffix(1)
+  WHERE _TABLE_SUFFIX BETWEEN FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY)) 
+  AND FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
   AND display_id NOT LIKE "0.%"
   AND installer_version = "xxxx.xx.xx.xx.xx"
 )
@@ -46,7 +37,8 @@ SELECT * FROM (
       (
         SELECT CONCAT(display_id, CAST(DATE(ts) AS STRING))
         FROM `client-side-events.Viewer_Events.events*`
-        WHERE _TABLE_SUFFIX BETWEEN daysAgoSuffix(3) AND daysAgoSuffix(1)
+        WHERE _TABLE_SUFFIX BETWEEN FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
+        AND FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
         AND event = 'startup'
       )
 
@@ -55,9 +47,11 @@ SELECT * FROM (
       SELECT DATE(ts) AS date, display_id
       FROM `client-side-events.Module_Events.watchdog_events`
       WHERE _PARTITIONTIME < CAST(CURRENT_DATE() AS TIMESTAMP)
-      AND _PARTITIONTIME >= CAST(daysAgo(3) AS TIMESTAMP)
-      AND event = 'module-down'
-      AND event_details = 'player-electron'
+      AND _PARTITIONTIME >= CAST(DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY) AS TIMESTAMP)
+      AND ((event = 'module-down' AND event_details = 'player-electron') OR event = 'no player watchdog')
+      AND CONCAT(display_id, CAST(DATE(ts) AS STRING)) IN (
+        SELECT CONCAT(display_id, CAST(date AS STRING)) FROM allDisplays
+      )
     )
     GROUP BY date
   ) b
@@ -67,6 +61,6 @@ SELECT * FROM (
 
   SELECT date, total_count, failed_count
   FROM `client-side-events.Aggregate_Tables.PlayerModuleStats`
-  WHERE date < daysAgo(3)
+  WHERE date < DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY)
 )
 ORDER BY date ASC

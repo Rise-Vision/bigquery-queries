@@ -48,8 +48,7 @@ SELECT * FROM (
       FROM `client-side-events.Module_Events.watchdog_events`
       WHERE _PARTITIONTIME < CAST(CURRENT_DATE() AS TIMESTAMP)
       AND _PARTITIONTIME >= CAST(DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY) AS TIMESTAMP)
-      AND event = 'module-down'
-      AND event_details = 'player-electron'
+      AND ((event = 'module-down' AND event_details = 'player-electron') OR event = 'no player watchdog')
       AND CONCAT(display_id, CAST(DATE(ts) AS STRING)) IN (
         SELECT CONCAT(display_id, CAST(date AS STRING)) FROM allDisplays
       )

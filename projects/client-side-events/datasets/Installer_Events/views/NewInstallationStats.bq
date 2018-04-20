@@ -17,7 +17,11 @@ FROM (
       WHERE
         display_id LIKE '0.%'
         AND event = 'beginning install'
-        AND installer_version = "XXXX.XX.XX.XX.XX"
+        AND installer_version = (
+          SELECT modules.version
+          FROM [Module_Events.modules_manifest]
+          WHERE modules.name = "launcher"
+        )
       GROUP BY
         date))a
   LEFT JOIN (
@@ -42,17 +46,26 @@ FROM (
         WHERE
           display_id LIKE '0.%'
           AND event = 'beginning install'
-          AND installer_version = "XXXX.XX.XX.XX.XX" ))
+          AND installer_version = (
+            SELECT modules.version
+            FROM [Module_Events.modules_manifest]
+            WHERE modules.name = "launcher"
+          )
+    ))
     WHERE
       display_id LIKE '0.%'
       AND event = 'install complete'
-      AND installer_version = "XXXX.XX.XX.XX.XX"
+      AND installer_version = (
+        SELECT modules.version
+        FROM [Module_Events.modules_manifest]
+        WHERE modules.name = "launcher"
+      )
     GROUP BY
       date)b
   ON
     a.date = b.date
   ORDER BY
-    date ASC),
+    date DESC),
   (
   SELECT
     *
@@ -61,4 +74,4 @@ FROM (
   WHERE
     date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY")))
 ORDER BY
-  date ASC
+  date DESC

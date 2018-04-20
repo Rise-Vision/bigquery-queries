@@ -13,7 +13,11 @@ FROM (
       TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
     WHERE
       display_id NOT LIKE "0.%"
-      AND installer_version = "XXXX.XX.XX.XX.XX"
+      AND installer_version = (
+        SELECT modules.version
+        FROM [Module_Events.modules_manifest]
+        WHERE modules.name = "launcher"
+      )
       AND event = "checking for upgrade"
     GROUP BY
       date)a
@@ -29,7 +33,11 @@ FROM (
         TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")))
     WHERE
       display_id NOT LIKE "0.%"
-      AND installer_version = "XXXX.XX.XX.XX.XX"
+      AND installer_version = (
+        SELECT modules.version
+        FROM [Module_Events.modules_manifest]
+        WHERE modules.name = "launcher"
+      )
       AND event = "install complete"
       AND display_date NOT IN (
       SELECT
@@ -43,7 +51,7 @@ FROM (
   ON
     a.date = b.date
   ORDER BY
-    date ASC),
+    date DESC),
   (
   SELECT
     *
@@ -52,4 +60,4 @@ FROM (
   WHERE
     date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY")))
 ORDER BY
-  date ASC
+  date DESC

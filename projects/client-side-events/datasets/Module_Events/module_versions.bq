@@ -1,0 +1,12 @@
+#standardSQL
+select * from
+(SELECT modules[OFFSET(0)].name name, modules[OFFSET(0)].version version FROM `client-side-events.Module_Events.modules_manifest`) union all
+(SELECT modules[OFFSET(1)].name name, modules[OFFSET(1)].version version FROM `client-side-events.Module_Events.modules_manifest`) union all
+(SELECT modules[OFFSET(2)].name name, modules[OFFSET(2)].version version FROM `client-side-events.Module_Events.modules_manifest`) union all
+(SELECT modules[OFFSET(3)].name name, modules[OFFSET(3)].version version FROM `client-side-events.Module_Events.modules_manifest`) union all
+(SELECT modules[OFFSET(4)].name name, modules[OFFSET(4)].version version FROM `client-side-events.Module_Events.modules_manifest`) union all
+(SELECT modules[OFFSET(5)].name name, modules[OFFSET(5)].version version FROM `client-side-events.Module_Events.modules_manifest`) union all
+(SELECT modules[OFFSET(6)].name name, modules[OFFSET(6)].version version FROM `client-side-events.Module_Events.modules_manifest`) union all
+(SELECT modules[OFFSET(7)].name name, modules[OFFSET(7)].version version FROM `client-side-events.Module_Events.modules_manifest`) union all
+(SELECT modules[OFFSET(8)].name name, modules[OFFSET(8)].version version FROM `client-side-events.Module_Events.modules_manifest`) union all
+(SELECT modules[OFFSET(9)].name name, modules[OFFSET(9)].version version FROM `client-side-events.Module_Events.modules_manifest`)

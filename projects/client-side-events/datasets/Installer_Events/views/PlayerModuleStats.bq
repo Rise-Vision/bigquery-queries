@@ -5,10 +5,14 @@ WITH
 allDisplays AS (
   SELECT DATE(ts) AS date, display_id, event
   FROM `client-side-events.Installer_Events.events*`
-  WHERE _TABLE_SUFFIX BETWEEN FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY)) 
+  WHERE _TABLE_SUFFIX BETWEEN FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
   AND FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
   AND display_id NOT LIKE "0.%"
-  AND installer_version = "xxxx.xx.xx.xx.xx"
+  AND installer_version = (
+    SELECT version
+    FROM `client-side-events.Module_Events.module_versions`
+    WHERE name = "player-electron"
+  )
 )
 
 SELECT * FROM (
@@ -63,4 +67,4 @@ SELECT * FROM (
   FROM `client-side-events.Aggregate_Tables.PlayerModuleStats`
   WHERE date < DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY)
 )
-ORDER BY date ASC
+ORDER BY date DESC

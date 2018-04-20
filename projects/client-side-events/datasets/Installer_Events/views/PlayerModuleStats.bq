@@ -30,7 +30,7 @@ SELECT * FROM (
     FROM (
       SELECT date, display_id FROM allDisplays
       WHERE event IN(
-        'viewer launch error', 'viewer webContents crashed', 'watchdog-restart'
+        'viewer launch error', 'watchdog-restart'
       )
 
       UNION ALL

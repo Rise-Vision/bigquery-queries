@@ -3,7 +3,7 @@
 WITH
 
 allDisplays AS (
-  SELECT DATE(ts) AS date, display_id, event
+  SELECT DATE(ts) AS date, display_id, event, event_details
   FROM `client-side-events.Installer_Events.events*`
   WHERE _TABLE_SUFFIX BETWEEN FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
   AND FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))

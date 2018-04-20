@@ -9,9 +9,9 @@ allDisplays AS (
   AND FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
   AND display_id NOT LIKE "0.%"
   AND installer_version = (
-    SELECT modules.version
-    FROM [Module_Events.modules_manifest]
-    WHERE modules.name = "player-electron"
+    SELECT version
+    FROM `client-side-events.Module_Events.module_versions`
+    WHERE name = "player-electron"
   )
 )
 

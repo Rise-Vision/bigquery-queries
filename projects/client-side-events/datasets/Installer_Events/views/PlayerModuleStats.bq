@@ -29,9 +29,7 @@ SELECT * FROM (
     SELECT date, COUNT(DISTINCT(display_id)) AS failed_count
     FROM (
       SELECT date, display_id FROM allDisplays
-      WHERE event IN(
-        'viewer launch error', 'viewer webContents crashed', 'watchdog-restart'
-      )
+      WHERE ((event = "watchdog-restart" AND event_details = "mainProcess") OR event = "viewer launch error")
 
       UNION ALL
 

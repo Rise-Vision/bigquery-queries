@@ -1,0 +1,64 @@
+#standardSQL
+WITH
+moduleVersion AS (SELECT version FROM `client-side-events.Module_Events.module_versions` WHERE name = "local-messaging"),
+  
+recentEventsCurrentVersion AS (
+  SELECT
+    event,
+    display_id,
+    DATE(ts) date
+  FROM
+    `client-side-events.Module_Events.local_messaging_events`
+  WHERE
+    _PARTITIONTIME < CURRENT_TIMESTAMP()
+    AND _PARTITIONTIME >= TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -5 DAY))
+    AND version = (select version from moduleVersion)),
+    
+watchdogModuleDownEventsCurrentVersion AS (
+  SELECT
+    DATE(ts) date,
+    display_id
+  FROM
+    `client-side-events.Module_Events.watchdog_events`
+  WHERE
+    _PARTITIONTIME < CURRENT_TIMESTAMP()
+    AND _PARTITIONTIME >= TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -5 DAY))
+    AND event = "module-down"
+    AND event_details = CONCAT("local-messaging", (select version from moduleVersion))),
+
+moduleErrorsCurrentVersion AS (
+  SELECT
+    date,
+    display_id
+  FROM
+    recentEventsCurrentVersion
+  WHERE
+    event = "error" )
+    
+SELECT
+  total.date,
+  (total.total - ifnull(errors.errors, 0)) / total.total * 100 pct
+FROM (
+  SELECT
+    date,
+    COUNT(DISTINCT display_id) total
+  FROM
+    recentEventsCurrentVersion
+  GROUP BY
+    date
+  HAVING
+    date <= CURRENT_DATE()) total
+LEFT JOIN (
+  SELECT
+    date,
+    COUNT(DISTINCT display_id) errors
+  FROM (select * from
+    moduleErrorsCurrentVersion
+  UNION distinct
+    select * from watchdogModuleDownEventsCurrentVersion)
+  GROUP BY
+    date) errors
+ON
+  total.date = errors.date
+ORDER BY
+  date DESC

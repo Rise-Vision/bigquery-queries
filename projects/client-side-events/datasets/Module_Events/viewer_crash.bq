@@ -1,0 +1,39 @@
+#standardSQL
+WITH
+moduleVersion AS (SELECT version FROM `client-side-events.Module_Events.module_versions` WHERE name = "player-electron"),
+
+recentEventsCurrentVersion AS (
+  SELECT
+    event,
+    display_id,
+    DATE(ts) date
+  FROM
+    `client-side-events.Installer_Events.events*`
+  WHERE
+   _TABLE_SUFFIX BETWEEN FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY)) AND FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+    AND installer_version = (select version from moduleVersion))
+
+SELECT
+  total.date,
+  (total.total - ifnull(errors.errors, 0)) / total.total * 100 pct
+FROM (
+  SELECT
+    date,
+    COUNT(DISTINCT display_id) total
+  FROM
+    recentEventsCurrentVersion
+  GROUP BY
+    date
+  HAVING
+    date <= CURRENT_DATE()) total
+LEFT JOIN (
+  SELECT
+    date,
+    COUNT(DISTINCT display_id) errors
+  FROM recentEventsCurrentVersion where event = "viewer webContents crashed"
+  GROUP BY
+    date) errors
+ON
+  total.date = errors.date
+ORDER BY
+  date DESC

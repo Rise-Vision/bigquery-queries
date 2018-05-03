@@ -26,5 +26,5 @@ FROM
       GROUP BY date) AS error ON usage.date=error.date
    ORDER BY usage.date),
   (SELECT *
-   FROM[client-side-EVENTS:Aggregate_Tables.TextDailyReliability]
+   FROM[client-side-events:Aggregate_Tables.TextDailyReliability]
    WHERE usage_date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY")))

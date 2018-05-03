@@ -37,5 +37,5 @@ FROM
       GROUP BY date) componentUsage ON usage.date=componentUsage.date
    ORDER BY usage.date),
   (SELECT *
-   FROM[client-side-EVENTS:Aggregate_Tables.SpreadsheetDailyReliability]
+   FROM[client-side-events:Aggregate_Tables.SpreadsheetDailyReliability]
    WHERE usage_date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY")))

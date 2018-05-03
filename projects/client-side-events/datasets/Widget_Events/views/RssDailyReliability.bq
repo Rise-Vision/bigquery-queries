@@ -34,5 +34,5 @@ FROM
       GROUP BY date) AS componentUsage ON usage.date=componentUsage.date
    ORDER BY usage.date),
   (SELECT *
-   FROM[client-side-EVENTS:Aggregate_Tables.RssDailyReliability]
+   FROM[client-side-events:Aggregate_Tables.RssDailyReliability]
    WHERE usage_date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY")))

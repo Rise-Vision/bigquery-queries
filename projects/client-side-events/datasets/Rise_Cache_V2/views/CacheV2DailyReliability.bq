@@ -33,5 +33,5 @@ FROM
       GROUP BY date) error ON total.date = error.date
    ORDER BY total.date),
   (SELECT *
-   FROM[client-side-EVENTS:Aggregate_Tables.CacheV2DailyReliability]
+   FROM[client-side-events:Aggregate_Tables.CacheV2DailyReliability]
    WHERE total_date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")))

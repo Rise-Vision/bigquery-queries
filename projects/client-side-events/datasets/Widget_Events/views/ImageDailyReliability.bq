@@ -8,7 +8,7 @@ FROM
      (SELECT COUNT(DISTINCT display_id) AS usageCount,
              Date(ts) AS date
       FROM TABLE_DATE_RANGE(Widget_Events.image_events, DATE_ADD(CURRENT_TIMESTAMP(), -10, 'DAY'), CURRENT_TIMESTAMP())
-      WHERE event = 'play'
+      WHERE event = 'configuration'
         AND display_id NOT IN ('preview',
                                '"display_id"',
                                '"displayId"')
@@ -29,5 +29,5 @@ FROM
       GROUP BY date) AS error ON usage.date=error.date
    ORDER BY usage.date),
   (SELECT *
-   FROM[client-side-EVENTS:Aggregate_Tables.ImageDailyReliability]
+   FROM[client-side-events:Aggregate_Tables.ImageDailyReliability]
    WHERE usage_date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY")))

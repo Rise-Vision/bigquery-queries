@@ -1,0 +1,123 @@
+SELECT
+  companyNames.name companyName,
+  unsupportedList.companyId companyId,
+  unsupportedList.os os,
+  unsupportedDisplayCount
+FROM (
+  SELECT
+    companyId,
+    os,
+    COUNT(DISTINCT displayId) unsupportedDisplayCount
+  FROM (
+    SELECT
+      active.display_id displayId,
+      active.player_name playerName,
+      active.os os,
+      displays.companyId companyId
+    FROM (
+      SELECT
+        display_id,
+        os,
+        player_name
+      FROM (
+        SELECT
+          all.display_id,
+          all.os
+        FROM (
+          SELECT
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS display_id,
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display/[A-Za-z0-9-]+\?sig.*&os=([A-Za-z0-9-:]+)') AS os,
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/.*&pn=([A-Za-z0-9-]+)') AS player_name,
+            timestamp
+          FROM
+            TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -30, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+          GROUP BY
+            display_id,
+            os,
+            player_name,
+            timestamp
+          HAVING
+            display_id IS NOT NULL
+            AND player_name IS NOT NULL) all
+        INNER JOIN (
+          SELECT
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') AS display_id,
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display/[A-Za-z0-9-]+\?sig.*&os=([A-Za-z0-9-:]+)') AS os,
+            REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/.*&pn=([A-Za-z0-9-]+)') AS player_name,
+            MAX(timestamp) AS maxTimestamp
+          FROM
+            TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_, DATE_ADD(CURRENT_TIMESTAMP(), -30, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+          GROUP BY
+            display_id,
+            os,
+            player_name
+          HAVING
+            display_id IS NOT NULL
+            AND player_name IS NOT NULL) max
+        ON
+          all.display_id=max.display_id
+          AND all.os = max.os
+          AND all.player_name = max.player_name
+          AND all.timestamp=max.maxTimestamp),
+        (
+        SELECT
+          viewer.display_id AS display_id,
+          configuration.os_description AS os,
+          configuration.player_name AS player_name
+        FROM (
+          SELECT
+            display_id
+          FROM
+            TABLE_DATE_RANGE([client-side-events:Viewer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -30, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+          WHERE
+            event="startup") viewer
+        INNER JOIN (
+          SELECT
+            all.display_id AS display_id,
+            os_description,
+            player_name
+          FROM
+            [client-side-events:Player_Data.configuration] all
+          INNER JOIN (
+            SELECT
+              display_id,
+              MAX(ts) AS maxTs
+            FROM
+              [client-side-events:Player_Data.configuration]
+            GROUP BY
+              display_id) max
+          ON
+            all.display_id = max.display_id
+            AND all.ts=max.maxTs ) configuration
+        ON
+          viewer.display_id=configuration.display_id
+        GROUP BY
+          display_id,
+          player_name,
+          os)) active
+    INNER JOIN
+      [rise-core-log:coreData.displays] displays
+    ON
+      displays.displayId=active.display_id
+    GROUP BY
+      displayId,
+      playerName,
+      os,
+      companyId)
+  WHERE
+    playerName = "RisePlayerPackagedApp"
+  GROUP BY
+    companyId,
+    os) unsupportedList
+LEFT JOIN (
+  SELECT
+    name,
+    companyId
+  FROM
+    [rise-core-log:coreData.MapCompanyName]) companyNames
+ON
+  companyNames.companyId = unsupportedList.companyId
+HAVING
+  os NOT LIKE "%cros%"
+ORDER BY
+  unsupportedDisplayCount DESC

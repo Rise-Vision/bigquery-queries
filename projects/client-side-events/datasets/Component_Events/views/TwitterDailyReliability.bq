@@ -1,0 +1,17 @@
+SELECT dailyUsage.numberOfDisplays as numberOfDisplays, IFNULL(INTEGER(dailyError.errorCount),INTEGER(0)) as errorCount, ((numberOfDisplays-IFNULL(INTEGER(errorCount),0))/numberOfDisplays) as Reliability, dailyUsage.date as usage_date
+FROM  
+    (
+      select count(display_id) as numberOfDisplays, cast(y as string) + "-" + right('00' + cast(m as string), 2) + "-" + right('00' + cast(d as string), 2) as date
+      from (select display_id, Month(Date(ts)) as m, Year(Date(ts)) as y, Day(Date(ts)) as d from [client-side-events:Component_Events.rise_twitter_events] where display_id != "xxxxxx" and company_id not in ("7fa5ee92-7deb-450b-a8d5-e5ed648c575f", "fee1f642-cdd1-4bc4-8f93-1fc97cb00d55", "a9575a1e-00a8-4d87-b640-979d0623f844") group by display_id, y, m, d)
+      group by date
+      order by date
+    ) AS dailyUsage
+LEFT JOIN 
+    (
+      select IFNULL(INTEGER(count(display_id)),INTEGER(0)) as errorCount, cast(y as string) + "-" + right('00' + cast(m as string), 2) + "-" + right('00' + cast(d as string), 2) as usage_date
+      from (select display_id, Month(Date(ts)) as m, Year(Date(ts)) as y, Day(Date(ts)) as d from [client-side-events:Component_Events.rise_twitter_events] where display_id != "xxxxxx"  and company_id not in ("7fa5ee92-7deb-450b-a8d5-e5ed648c575f", "fee1f642-cdd1-4bc4-8f93-1fc97cb00d55", "a9575a1e-00a8-4d87-b640-979d0623f844") and (event = "Error" or event = "Unauthorized") group by display_id, y, m, d)
+      group by usage_date
+      order by usage_date
+    ) AS dailyError
+ON dailyUsage.date = dailyError.usage_date
+order by dailyUsage.date desc

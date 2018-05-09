@@ -1,0 +1,4 @@
+select count(display_id) as numberOfDisplays, cast(y as string) + "-" + right('00' + cast(m as string), 2) as date
+from (select display_id, Month(Date(ts)) as m, Year(Date(ts)) as y from [client-side-events:Component_Events.rise_twitter_events] where display_id != "xxxxxx" and company_id not in ("7fa5ee92-7deb-450b-a8d5-e5ed648c575f", "fee1f642-cdd1-4bc4-8f93-1fc97cb00d55", "a9575a1e-00a8-4d87-b640-979d0623f844") group by display_id, y, m)
+group by date
+order by date

@@ -1,17 +1,57 @@
-SELECT dailyUsage.numberOfDisplays as numberOfDisplays, IFNULL(INTEGER(dailyError.errorCount),INTEGER(0)) as errorCount, ((numberOfDisplays-IFNULL(INTEGER(errorCount),0))/numberOfDisplays) as Reliability, dailyUsage.date as usage_date
-FROM  
+#standardSQL
+
+SELECT 
+COUNT(displays.display_id) as numberOfDisplays, 
+COUNT(errors.display_id) as errorCount, 
+(1 - (COUNT(errors.display_id)/COUNT(displays.display_id))) as Reliability, 
+displays.date as usage_data 
+FROM 
+(
+  SELECT display_id, DATE(ts) AS date 
+  FROM `client-side-events.Component_Events.rise_twitter_events` 
+  WHERE display_id != "xxxxxx" 
+  AND company_id NOT IN ("7fa5ee92-7deb-450b-a8d5-e5ed648c575f", "fee1f642-cdd1-4bc4-8f93-1fc97cb00d55", "a9575a1e-00a8-4d87-b640-979d0623f844") 
+  GROUP BY display_id, date
+) displays
+LEFT JOIN
+(
+  SELECT * FROM 
+  (
+    /* Select displays that have component errors */
+    SELECT display_id, DATE(ts) AS date 
+    FROM `client-side-events.Component_Events.rise_twitter_events` 
+    WHERE (event = "Error") 
+    GROUP BY display_id, date
+    
+    UNION ALL
+    
+    /* Select displays that have module errors */
+    SELECT display_id, DATE(ts) AS date 
+    FROM `client-side-events.Module_Events.tweet_events` 
+    WHERE event = "Error"
+    GROUP BY display_id, date
+    
+    UNION ALL
+
+    /* Select displays that have Authorization errors but should be auhtorized by player */
+    SELECT events.display_id, Date(events.ts) as date FROM 
     (
-      select count(display_id) as numberOfDisplays, cast(y as string) + "-" + right('00' + cast(m as string), 2) + "-" + right('00' + cast(d as string), 2) as date
-      from (select display_id, Month(Date(ts)) as m, Year(Date(ts)) as y, Day(Date(ts)) as d from [client-side-events:Component_Events.rise_twitter_events] where display_id != "xxxxxx" and company_id not in ("7fa5ee92-7deb-450b-a8d5-e5ed648c575f", "fee1f642-cdd1-4bc4-8f93-1fc97cb00d55", "a9575a1e-00a8-4d87-b640-979d0623f844") group by display_id, y, m, d)
-      group by date
-      order by date
-    ) AS dailyUsage
-LEFT JOIN 
-    (
-      select IFNULL(INTEGER(count(display_id)),INTEGER(0)) as errorCount, cast(y as string) + "-" + right('00' + cast(m as string), 2) + "-" + right('00' + cast(d as string), 2) as usage_date
-      from (select display_id, Month(Date(ts)) as m, Year(Date(ts)) as y, Day(Date(ts)) as d from [client-side-events:Component_Events.rise_twitter_events] where display_id != "xxxxxx"  and company_id not in ("7fa5ee92-7deb-450b-a8d5-e5ed648c575f", "fee1f642-cdd1-4bc4-8f93-1fc97cb00d55", "a9575a1e-00a8-4d87-b640-979d0623f844") and (event = "Error" or event = "Unauthorized") group by display_id, y, m, d)
-      group by usage_date
-      order by usage_date
-    ) AS dailyError
-ON dailyUsage.date = dailyError.usage_date
-order by dailyUsage.date desc
+      /* Select the player config event that was valid at the time of the Unauthorized log */
+      SELECT events.display_id as display_id, events.ts as event_ts, max(configs.ts) as config_ts
+      FROM `client-side-events.Component_Events.rise_twitter_events` events
+      LEFT JOIN `client-side-events.Player_Data.configuration` configs
+      ON events.display_id = configs.display_id AND events.ts > configs.ts
+      GROUP BY events.display_id, events.ts
+    ) max_config_ts
+    LEFT JOIN `client-side-events.Component_Events.rise_twitter_events` events
+    ON max_config_ts.display_id = events.display_id AND max_config_ts.event_ts = events.ts
+    LEFT JOIN `client-side-events.Player_Data.configuration` configs
+    ON events.display_id = configs.display_id AND max_config_ts.config_ts = configs.ts
+    WHERE configs.offline_subscription = TRUE AND events.event = 'Unauthorized'
+    GROUP BY events.display_id, date
+  ) 
+  GROUP BY display_id, date
+) errors 
+ON displays.display_id = errors.display_id AND displays.date = errors.date
+GROUP BY displays.date
+ORDER BY displays.date DESC;

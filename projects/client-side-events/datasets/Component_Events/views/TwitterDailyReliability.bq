@@ -4,7 +4,7 @@ SELECT
 COUNT(displays.display_id) as numberOfDisplays, 
 COUNT(errors.display_id) as errorCount, 
 (1 - (COUNT(errors.display_id)/COUNT(displays.display_id))) as Reliability, 
-displays.date as usage_data 
+cast(displays.date as String) as usage_date 
 FROM 
 (
   SELECT display_id, DATE(ts) AS date 
@@ -28,7 +28,7 @@ LEFT JOIN
     /* Select displays that have module errors */
     SELECT display_id, DATE(ts) AS date 
     FROM `client-side-events.Module_Events.tweet_events` 
-    WHERE event = "Error"
+    WHERE event = "error"
     GROUP BY display_id, date
     
     UNION ALL

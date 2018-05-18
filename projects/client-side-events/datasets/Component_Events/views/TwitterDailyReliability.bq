@@ -28,7 +28,7 @@ LEFT JOIN
     /* Select displays that have module errors */
     SELECT display_id, DATE(ts) AS date 
     FROM `client-side-events.Module_Events.tweet_events` 
-    WHERE event = "error"
+    WHERE event = "error" and STARTS_WITH(event_details, "Credentials do not exist") IS FALSE
     GROUP BY display_id, date
     
     UNION ALL

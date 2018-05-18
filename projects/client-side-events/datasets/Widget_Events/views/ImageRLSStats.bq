@@ -1,0 +1,51 @@
+#standardSQL
+
+WITH
+
+allDisplays AS (
+  SELECT DATE(ts) AS date, display_id, event, event_details, error_details, file_url
+  FROM `client-side-events.Widget_Events.image_events*`
+  WHERE _TABLE_SUFFIX BETWEEN FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
+  AND FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+  AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+  AND version = "0.1.1"
+)
+
+SELECT * FROM (
+  SELECT
+    a.date AS date,
+    a.total_count AS total_count,
+    IFNULL(b.failed_count, 0) AS failed_count
+  FROM (
+    SELECT date, COUNT(DISTINCT(display_id)) AS total_count
+    FROM allDisplays
+    WHERE (event = "configuration" AND event_details = "storage file")
+    GROUP BY date
+  ) a
+  LEFT JOIN (
+    SELECT date, COUNT(DISTINCT(display_id)) AS failed_count
+    FROM (
+      SELECT date, display_id FROM allDisplays
+      WHERE event = "error"
+      AND (
+        event_details IN ('no connection', 'required modules unavailable', 'unauthorized', 'file does not exist') OR
+        (error_details IS NOT NULL AND file_url NOT LIKE "%localhost:94%" AND file_url NOT LIKE "https://storage-dot-rvaserver2.appspot.com%")
+      )
+      AND CONCAT(display_id, CAST(date AS STRING)) IN
+                (
+                  SELECT CONCAT(display_id, CAST(date AS STRING))
+                  FROM allDisplays
+                  WHERE (event = "configuration" AND event_details = "storage file")
+                )
+    )
+    GROUP BY date
+  ) b
+  ON a.date = b.date
+
+  UNION ALL
+
+  SELECT date, total_count, failed_count
+  FROM `client-side-events.Aggregate_Tables.ImageRLSStats`
+  WHERE date < DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY)
+)
+ORDER BY date DESC

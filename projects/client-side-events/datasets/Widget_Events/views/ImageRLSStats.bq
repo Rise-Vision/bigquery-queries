@@ -8,7 +8,6 @@ allDisplays AS (
   WHERE _TABLE_SUFFIX BETWEEN FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
   AND FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
   AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
-  AND version = "0.1.1"
 )
 
 SELECT * FROM (
@@ -19,7 +18,7 @@ SELECT * FROM (
   FROM (
     SELECT date, COUNT(DISTINCT(display_id)) AS total_count
     FROM allDisplays
-    WHERE (event = "configuration" AND event_details = "storage file")
+    WHERE (event = "configuration" AND event_details = "storage file (rls)")
     GROUP BY date
   ) a
   LEFT JOIN (
@@ -35,7 +34,7 @@ SELECT * FROM (
                 (
                   SELECT CONCAT(display_id, CAST(date AS STRING))
                   FROM allDisplays
-                  WHERE (event = "configuration" AND event_details = "storage file")
+                  WHERE (event = "configuration" AND event_details = "storage file (rls)")
                 )
     )
     GROUP BY date

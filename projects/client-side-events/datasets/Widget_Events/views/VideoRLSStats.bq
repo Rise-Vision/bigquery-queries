@@ -8,6 +8,14 @@ allDisplays AS (
   WHERE _TABLE_SUFFIX BETWEEN FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
   AND FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
   AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+  AND display_id IN (
+    SELECT DISTINCT(display_id)
+      FROM `client-side-events.Installer_Events.events*`
+      WHERE _TABLE_SUFFIX BETWEEN FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
+      AND FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+      AND installer_version NOT LIKE "beta_%"
+      AND event = "install complete"
+  )
 )
 
 SELECT * FROM (

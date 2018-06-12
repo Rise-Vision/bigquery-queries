@@ -21,7 +21,7 @@ moduleErrorsCurrentVersion AS (
   FROM
     recentEventsCurrentVersion
   WHERE
-    event = "error" )
+    event like "%error%" )
 
 SELECT
   total.date,

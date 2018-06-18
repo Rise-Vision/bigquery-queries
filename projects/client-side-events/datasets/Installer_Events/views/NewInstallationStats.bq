@@ -15,7 +15,7 @@ FROM (
       FROM
         TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
       WHERE
-        display_id LIKE '0.%'
+        event_details LIKE '0.%'
         AND event = 'beginning install'
         AND installer_version = (
           SELECT modules.version
@@ -44,7 +44,7 @@ FROM (
         FROM
           TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
         WHERE
-          display_id LIKE '0.%'
+          event_details LIKE '0.%'
           AND event = 'beginning install'
           AND installer_version = (
             SELECT modules.version
@@ -53,7 +53,7 @@ FROM (
           )
     ))
     WHERE
-      display_id LIKE '0.%'
+      event_details LIKE '0.%'
       AND event = 'install complete'
       AND installer_version = (
         SELECT modules.version

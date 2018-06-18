@@ -12,7 +12,7 @@ FROM (
     FROM
       TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
     WHERE
-      display_id NOT LIKE "0.%"
+      event_details NOT LIKE "0.%"
       AND installer_version = (
         SELECT modules.version
         FROM [Module_Events.modules_manifest]
@@ -27,12 +27,12 @@ FROM (
       EXACT_COUNT_DISTINCT(display_id) AS completions
     FROM (
       SELECT
-        display_id, event, installer_version, ts,
+        display_id, event, event_details, installer_version, ts,
         CONCAT(display_id, DATE(ts)) AS display_date
       FROM
         TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"), DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")))
     WHERE
-      display_id NOT LIKE "0.%"
+      event_details NOT LIKE "0.%"
       AND installer_version = (
         SELECT modules.version
         FROM [Module_Events.modules_manifest]

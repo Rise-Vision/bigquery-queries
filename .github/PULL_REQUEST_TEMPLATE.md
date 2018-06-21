@@ -1,0 +1,1 @@
+Please remember apply the changes on Big Query UI

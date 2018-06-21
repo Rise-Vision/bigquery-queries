@@ -1,0 +1,15 @@
+#standardSQL
+with 
+addedDisplays as (
+  select distinct displayId FROM `rise-core-log.coreData.displays` 
+  where appId = 's~rvaserver2' 
+  and DATE(creationDate) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
+),
+activeDisplays as (
+  select distinct display_id FROM `client-side-events.Player_Data.configuration` 
+  where player_version != '' and DATE(ts) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
+)
+
+select DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) as date,
+(select count(*) from addedDisplays) as addedDisplayCount,
+(select count(*) from addedDisplays where displayId in (select * from activeDisplays)) as activeDisplayCount

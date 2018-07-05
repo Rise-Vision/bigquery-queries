@@ -15,7 +15,8 @@ FROM (
     FROM
       TABLE_DATE_RANGE(Widget_Events.video_v2_events, DATE_ADD(CURRENT_TIMESTAMP(), -10, 'DAY'), CURRENT_TIMESTAMP())
     WHERE
-      event = 'play'
+      event = 'configuration'
+      AND event_details NOT LIKE "%(rls)%"
       AND display_id NOT IN ('preview',
         '"display_id"',
         '"displayId"')

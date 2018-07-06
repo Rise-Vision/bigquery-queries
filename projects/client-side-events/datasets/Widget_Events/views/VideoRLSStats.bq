@@ -34,8 +34,8 @@ SELECT * FROM (
     FROM (
       SELECT date, display_id FROM allDisplays
       WHERE event = "error"
-      AND (event_details IN ('no connection', 'required modules unavailable', 'unauthorized', 'file does not exist') OR
-        file_url NOT LIKE "%localhost:94%")
+      AND (event_details IN ('no connection', 'required modules unavailable') OR
+        (file_url NOT LIKE "%localhost:94%" AND file_url NOT LIKE "https://storage-dot-rvaserver2.appspot.com%"))
       AND CONCAT(display_id, CAST(date AS STRING)) IN
                 (
                   SELECT CONCAT(display_id, CAST(date AS STRING))
@@ -47,7 +47,6 @@ SELECT * FROM (
 
       SELECT date, display_id FROM allDisplays
       WHERE event = "player error"
-      AND (event_details = 'video - Error loading media: File could not be played' OR event_details LIKE '%MEDIA_ERR%')
       AND file_url NOT LIKE "%localhost:94%"
       AND local_url IS NOT NULL
       AND CONCAT(display_id, CAST(date AS STRING)) IN (

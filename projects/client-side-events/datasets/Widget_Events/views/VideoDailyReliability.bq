@@ -70,6 +70,7 @@ OUTER JOIN EACH (
           event IN ('player error')
           AND (event_details = 'video - Error loading media: File could not be played'
           OR event_details CONTAINS 'MEDIA_ERR')
+          AND file_url NOT LIKE "risemedialibrary-%"
           AND (version='2.0.0' OR version='1.1.0')),
         (
         SELECT

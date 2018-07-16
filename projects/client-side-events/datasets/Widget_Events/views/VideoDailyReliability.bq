@@ -17,15 +17,13 @@ FROM (
     WHERE
       event = 'configuration'
       AND event_details NOT LIKE "%(rls)%"
-      AND display_id NOT IN ('preview',
-        '"display_id"',
-        '"displayId"')
+      AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
       AND (version='2.0.0' OR version='1.1.0')) AS display_play
   INNER JOIN (
     SELECT
       display_id
     FROM
-      TABLE_QUERY([client-side-events:Installer_Events], 'table_id CONTAINS "events"')
+      TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY"), CURRENT_TIMESTAMP())
     GROUP BY
       display_id) AS v3_displays
   ON
@@ -92,7 +90,7 @@ OUTER JOIN EACH (
       SELECT
         display_id
       FROM
-        TABLE_QUERY([client-side-events:Installer_Events], 'table_id CONTAINS "events"')
+        TABLE_DATE_RANGE([client-side-events:Installer_Events.events], DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY"), CURRENT_TIMESTAMP())
       GROUP BY
         display_id) AS v3_displays
     ON

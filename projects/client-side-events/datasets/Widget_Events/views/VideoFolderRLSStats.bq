@@ -1,0 +1,70 @@
+#standardSQL
+
+WITH
+
+allDisplays AS (
+  SELECT DATE(ts) AS date, display_id, event, event_details, file_url, local_url
+  FROM `client-side-events.Widget_Events.video_v2_events*`
+  WHERE _TABLE_SUFFIX BETWEEN FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
+  AND FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+  AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+  AND display_id IN (
+    SELECT DISTINCT(display_id)
+      FROM `client-side-events.Installer_Events.events*`
+      WHERE _TABLE_SUFFIX BETWEEN FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
+      AND FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+      AND installer_version NOT LIKE "beta_%"
+      AND event = "install complete"
+  )
+)
+
+SELECT * FROM (
+  SELECT
+    a.date AS date,
+    a.total_count AS total_count,
+    IFNULL(b.failed_count, 0) AS failed_count
+  FROM (
+    SELECT date, COUNT(DISTINCT(display_id)) AS total_count
+    FROM allDisplays
+    WHERE (event = "configuration" AND event_details = "storage folder (rls)")
+    GROUP BY date
+  ) a
+  LEFT JOIN (
+    SELECT date, COUNT(DISTINCT(display_id)) AS failed_count
+    FROM (
+      SELECT date, display_id FROM allDisplays
+      WHERE event = "error"
+      AND (event_details IN ('no connection', 'required modules unavailable', 'folder does not exist') OR event_details LIKE "authorization error%" OR
+        (file_url NOT LIKE "%localhost:94%" AND file_url NOT LIKE "https://storage-dot-rvaserver2.appspot.com%"))
+      AND CONCAT(display_id, CAST(date AS STRING)) IN
+                (
+                  SELECT CONCAT(display_id, CAST(date AS STRING))
+                  FROM allDisplays
+                  WHERE (event = "configuration" AND event_details = "storage folder (rls)")
+                )
+
+      UNION ALL
+
+      SELECT date, display_id FROM allDisplays
+      WHERE event = "player error"
+      AND file_url NOT LIKE "%localhost:94%"
+      AND local_url IS NOT NULL
+      AND CONCAT(display_id, CAST(date AS STRING)) IN (
+        SELECT CONCAT(display_id, CAST(date AS STRING))
+        FROM allDisplays
+        WHERE (event = "configuration" AND event_details = "storage folder (rls)")
+      )
+    )
+
+    GROUP BY date
+  ) b
+  ON a.date = b.date
+
+  UNION ALL
+
+  SELECT date, total_count, failed_count
+  FROM `client-side-events.Aggregate_Tables.VideoFolderRLSStats`
+  WHERE date < DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY)
+
+)
+ORDER BY date DESC

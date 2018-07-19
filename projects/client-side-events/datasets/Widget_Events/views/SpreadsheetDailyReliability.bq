@@ -1,41 +1,42 @@
-SELECT *
-FROM
-  (SELECT INTEGER(usageCount) AS usageCount,
-          IFNULL(INTEGER(errorCount),0) AS errorCount,
-          ((usageCount-IFNULL(INTEGER(errorCount),0))/usageCount) AS Reliability,
-          usage.date AS usage_date,
-          IFNULL(INTEGER(componentUsage.componentUsageCount),0) AS componentUsageCount
-   FROM
-     (SELECT COUNT(DISTINCT display_id) AS usageCount,
-             Date(ts) AS date
-      FROM TABLE_DATE_RANGE(Widget_Events.spreadsheet_events, DATE_ADD(CURRENT_TIMESTAMP(), -10, 'DAY'), CURRENT_TIMESTAMP())
-      WHERE event = 'play'
-        AND display_id NOT IN ('preview',
-                               '"display_id"',
-                               '"displayId"')
-      GROUP BY date) USAGE
-   OUTER JOIN EACH
-     (SELECT COUNT(DISTINCT display_id) AS errorCount,
-             Date(ts) AS date
-      FROM TABLE_DATE_RANGE(Widget_Events.spreadsheet_events, DATE_ADD(CURRENT_TIMESTAMP(), -10, 'DAY'), CURRENT_TIMESTAMP())
-      WHERE event = 'error'
+SELECT * FROM
+(
+  SELECT INTEGER(usageCount) as usageCount,
+         IFNULL(INTEGER(errorCount),0) as errorCount,
+         ((usageCount-IFNULL(INTEGER(errorCount),0))/usageCount) as Reliability,
+         usage.date as usage_date,
+         IFNULL(INTEGER(componentUsage.componentUsageCount),0) as componentUsageCount
+    FROM
+      (SELECT COUNT(DISTINCT display_id) as usageCount, Date(ts) AS date
+        FROM TABLE_DATE_RANGE(Widget_Events.spreadsheet_events, DATE_ADD(CURRENT_TIMESTAMP(), -3, 'DAY'), CURRENT_TIMESTAMP())
+          WHERE event = 'configuration'
+          AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+          GROUP BY date
+      ) usage
+    OUTER JOIN EACH
+      (SELECT COUNT(DISTINCT display_id) as errorCount, Date(ts) AS date
+        FROM TABLE_DATE_RANGE(Widget_Events.spreadsheet_events, DATE_ADD(CURRENT_TIMESTAMP(), -3, 'DAY'), CURRENT_TIMESTAMP())
+        WHERE event = 'error'
         AND event_details != 'spreadsheet not published'
-        AND NOT error_details CONTAINS "400" //403 results WHEN spreadsheet IS NOT PUBLIC WITH link. We SHOW msg IN widget & settings. NOTHING
-        MORE we can DO
+        AND NOT error_details CONTAINS "400"
+        //403 results when spreadsheet is not public with link. We show msg in widget & settings. Nothing more we can do
         AND NOT error_details CONTAINS "403"
         AND NOT error_details CONTAINS "404"
         AND NOT error_details CONTAINS "code: 0"
-        AND display_id NOT IN ('preview',
-                               '"display_id"',
-                               '"displayId"')
-      GROUP BY date) AS error ON usage.date=error.date
-   OUTER JOIN EACH
-     (SELECT COUNT(DISTINCT display_id) AS componentUsageCount,
-             Date(ts) AS date
-      FROM TABLE_DATE_RANGE(Widget_Events.component_sheet_events, DATE_ADD(CURRENT_TIMESTAMP(), -10, 'DAY'), CURRENT_TIMESTAMP())
-      WHERE usage_type = 'standalone'
-      GROUP BY date) componentUsage ON usage.date=componentUsage.date
-   ORDER BY usage.date),
-  (SELECT *
-   FROM[client-side-events:Aggregate_Tables.SpreadsheetDailyReliability]
-   WHERE usage_date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY")))
+        AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+        GROUP BY date
+      ) AS error
+    ON usage.date=error.date
+    OUTER JOIN EACH
+      (SELECT COUNT(DISTINCT display_id) as componentUsageCount, Date(ts) as date
+        FROM TABLE_DATE_RANGE(Widget_Events.component_sheet_events, DATE_ADD(CURRENT_TIMESTAMP(), -3, 'DAY'), CURRENT_TIMESTAMP())
+        WHERE usage_type = 'standalone'
+        GROUP BY date
+      ) componentUsage
+    ON usage.date=componentUsage.date
+  ORDER BY usage.date
+),
+(
+  SELECT * from[client-side-events:Aggregate_Tables.SpreadsheetDailyReliability]
+    WHERE usage_date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"))
+)
+ORDER BY usage_date DESC

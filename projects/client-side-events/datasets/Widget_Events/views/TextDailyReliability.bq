@@ -1,30 +1,28 @@
-SELECT *
-FROM
-  (SELECT INTEGER(usageCount) AS usageCount,
-          IFNULL(INTEGER(errorCount),0) AS errorCount,
-          ((usageCount-IFNULL(INTEGER(errorCount),0))/usageCount) AS Reliability,
-          usage.date AS usage_date
-   FROM
-     (SELECT COUNT(DISTINCT display_id) AS usageCount,
-             Date(ts) AS date
-      FROM TABLE_DATE_RANGE(Widget_Events.text_events, DATE_ADD(CURRENT_TIMESTAMP(), -10, 'DAY'), CURRENT_TIMESTAMP())
-      WHERE event = 'play'
-        AND display_id NOT IN ('preview',
-                               '"display_id"',
-                               '"displayId"')
-      GROUP BY date) AS USAGE
-   OUTER JOIN EACH
-     (SELECT COUNT(DISTINCT display_id) AS errorCount,
-             Date(ts) AS date
-      FROM TABLE_DATE_RANGE(Widget_Events.text_events, DATE_ADD(CURRENT_TIMESTAMP(), -10, 'DAY'), CURRENT_TIMESTAMP())
-      WHERE event="error"
-        AND event_details IS NOT NULL
-        AND event_details IN ('Google font not loaded')
-        AND display_id NOT IN ('preview',
-                               '"display_id"',
-                               '"displayId"')
-      GROUP BY date) AS error ON usage.date=error.date
-   ORDER BY usage.date),
-  (SELECT *
-   FROM[client-side-events:Aggregate_Tables.TextDailyReliability]
-   WHERE usage_date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -10, "DAY")))
+SELECT * FROM
+(
+  SELECT INTEGER(usageCount) as usageCount,
+         IFNULL(INTEGER(errorCount),0) as errorCount,
+         ((usageCount-IFNULL(INTEGER(errorCount),0))/usageCount) as Reliability,
+         usage.date as usage_date
+     FROM
+       (SELECT COUNT(DISTINCT display_id) as usageCount, Date(ts) AS date
+          FROM TABLE_DATE_RANGE(Widget_Events.text_events, DATE_ADD(CURRENT_TIMESTAMP(), -3, 'DAY'), CURRENT_TIMESTAMP())
+          WHERE event = 'configuration'
+          AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+          GROUP BY date
+       ) AS usage
+     OUTER JOIN EACH
+       (SELECT COUNT(DISTINCT display_id) as errorCount, Date(ts) AS date
+          FROM TABLE_DATE_RANGE(Widget_Events.text_events, DATE_ADD(CURRENT_TIMESTAMP(), -3, 'DAY'), CURRENT_TIMESTAMP())
+          WHERE event="error"
+          AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+          GROUP BY date
+       ) AS error
+     ON usage.date=error.date
+  ORDER BY usage.date
+),
+(
+  SELECT * FROM [client-side-events:Aggregate_Tables.TextDailyReliability]
+  WHERE usage_date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"))
+)
+ORDER BY usage_date DESC

@@ -1,0 +1,55 @@
+#standardSQL
+WITH
+latestVersion AS (
+  SELECT
+    version
+  FROM
+    `client-side-events.ChromeOS_Player_Events.latest_version_string`),
+    
+recentEventsCurrentVersion AS (
+  SELECT
+    event,
+    event_details,
+    id,
+    DATE(ts) date
+  FROM
+    `client-side-events.ChromeOS_Player_Events.events`
+  WHERE
+    ts >= TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -5 DAY))
+    AND player_version = (SELECT version FROM latestVersion)),
+      
+errorsCurrentVersion AS (
+  SELECT
+    date,
+    id
+  FROM
+    recentEventsCurrentVersion
+  WHERE
+    UPPER(event) LIKE "%ERROR%")
+    
+SELECT
+  total.date,
+  (total.total - ifnull(errors.errors,
+      0)) / total.total * 100 pct
+FROM (
+  SELECT
+    date,
+    COUNT(DISTINCT id) total
+  FROM
+    recentEventsCurrentVersion
+  GROUP BY
+    date
+  HAVING
+    date <= CURRENT_DATE()) total
+LEFT JOIN (
+  SELECT
+    date,
+    COUNT(DISTINCT id) errors
+  FROM
+    errorsCurrentVersion
+  GROUP BY
+    date) errors
+ON
+  total.date = errors.date
+ORDER BY
+  date DESC

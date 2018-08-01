@@ -30,8 +30,10 @@ watchdogModuleDownEventsCurrentVersion AS (
     date,
     display_id
   FROM
-    recentEventsCurrentVersion
+    recentEventsCurrentVersion r
+  LEFT JOIN `rise-core-log.coreData.deleted` d ON r.display_id = d.id 
   WHERE
+    (d.kind != "Display" OR d.kind IS NULL) AND
     event = "error" )
     
 SELECT

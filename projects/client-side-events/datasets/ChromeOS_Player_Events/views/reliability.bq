@@ -16,7 +16,7 @@ recentEventsCurrentVersion AS (
     `client-side-events.ChromeOS_Player_Events.events`
   WHERE
     ts >= TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -5 DAY))
-    AND player_version = (SELECT version FROM latestVersion)),
+    AND ends_with(player_version, (SELECT version FROM latestVersion))),
       
 errorsCurrentVersion AS (
   SELECT

@@ -1,0 +1,78 @@
+#standardSQL
+
+WITH image_rls_single AS
+(
+  SELECT date, ((total_count - failed_count)/total_count) as reliability
+  FROM `client-side-events.Aggregate_Tables.ImageRLSStats`
+  WHERE STRING(TIMESTAMP(date)) BETWEEN FORMAT_DATE('%E4Y-%m-%d', DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY))
+      AND FORMAT_DATE('%E4Y-%m-%d', CURRENT_DATE())
+  AND total_count > 1 # avoids rogue tables that only have a value of 1 for total count
+  ORDER BY date DESC
+),
+
+image_rls_folder AS
+(
+  SELECT date, ((total_count - failed_count)/total_count) as reliability
+  FROM `client-side-events.Aggregate_Tables.ImageFolderRLSStats`
+  WHERE STRING(TIMESTAMP(date)) BETWEEN FORMAT_DATE('%E4Y-%m-%d', DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY))
+      AND FORMAT_DATE('%E4Y-%m-%d', CURRENT_DATE())
+  AND total_count > 1 # avoids rogue tables that only have a value of 1 for total count
+ORDER BY date DESC
+),
+
+image_risecache AS
+(
+  SELECT usage_date, IFNULL(Reliability, 1) AS reliability
+  FROM `client-side-events.Aggregate_Tables.ImageDailyReliability`
+  WHERE STRING(TIMESTAMP(usage_date)) BETWEEN FORMAT_DATE('%E4Y-%m-%d', DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY))
+      AND FORMAT_DATE('%E4Y-%m-%d', CURRENT_DATE())
+  AND usageCount > 1
+),
+
+video_rls_single AS
+(
+  SELECT date, ((total_count - failed_count)/total_count) as reliability
+  FROM `client-side-events.Aggregate_Tables.VideoRLSStats`
+  WHERE STRING(TIMESTAMP(date)) BETWEEN FORMAT_DATE('%E4Y-%m-%d', DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY))
+      AND FORMAT_DATE('%E4Y-%m-%d', CURRENT_DATE())
+  AND total_count > 1
+  ORDER BY date DESC
+),
+
+video_rls_folder AS
+(
+  SELECT date, ((total_count - failed_count)/total_count) as reliability
+  FROM `client-side-events.Aggregate_Tables.VideoFolderRLSStats`
+  WHERE STRING(TIMESTAMP(date)) BETWEEN FORMAT_DATE('%E4Y-%m-%d', DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY))
+      AND FORMAT_DATE('%E4Y-%m-%d', CURRENT_DATE())
+  AND total_count > 1
+  ORDER BY date DESC
+),
+
+video_risecache AS
+(
+  SELECT usage_date, IFNULL(Reliability, 1) as reliability
+  FROM `client-side-events.Aggregate_Tables.VideoDailyReliability`
+  WHERE STRING(TIMESTAMP(usage_date)) BETWEEN FORMAT_DATE('%E4Y-%m-%d', DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY))
+      AND FORMAT_DATE('%E4Y-%m-%d', CURRENT_DATE())
+  AND usageCount > 1
+)
+
+SELECT date, image_rls_single_r, image_rls_folder_r, image_risecache_r, video_rls_single_r, video_rls_folder_r, video_risecache_r
+FROM (
+  SELECT image_rls_single.date as date,
+       image_rls_single.reliability as image_rls_single_r,
+       image_rls_folder.reliability as image_rls_folder_r,
+       image_risecache.reliability as image_risecache_r,
+       video_rls_single.reliability as video_rls_single_r,
+       video_rls_folder.reliability as video_rls_folder_r,
+       video_risecache.reliability as video_risecache_r
+  FROM
+    image_rls_single
+  LEFT JOIN image_rls_folder ON image_rls_folder.date = image_rls_single.date
+  LEFT JOIN image_risecache ON DATE(TIMESTAMP(image_risecache.usage_date)) = image_rls_single.date
+  LEFT JOIN video_rls_single ON video_rls_single.date = image_rls_single.date
+  LEFT JOIN video_rls_folder ON video_rls_folder.date = image_rls_single.date
+  LEFT JOIN video_risecache ON DATE(TIMESTAMP(video_risecache.usage_date)) = image_rls_single.date
+)
+ORDER by date DESC

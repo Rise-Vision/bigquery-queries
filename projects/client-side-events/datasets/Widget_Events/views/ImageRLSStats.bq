@@ -35,10 +35,6 @@ SELECT * FROM (
       SELECT date, display_id FROM allDisplays
       WHERE event = "error"
       and configuration = "storage file (rls)"
-      AND (
-        event_details IN ('no connection', 'required modules unavailable') OR
-        (error_details IS NOT NULL AND file_url NOT LIKE "%localhost:94%" AND file_url NOT LIKE "https://storage-dot-rvaserver2.appspot.com%")
-      )
       AND CONCAT(display_id, CAST(date AS STRING)) IN
                 (
                   SELECT CONCAT(display_id, CAST(date AS STRING))

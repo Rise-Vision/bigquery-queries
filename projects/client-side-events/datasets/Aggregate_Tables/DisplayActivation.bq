@@ -4,6 +4,10 @@ addedDisplays as (
   select distinct displayId FROM `rise-core-log.coreData.displays` 
   where appId = 's~rvaserver2' 
   and DATE(creationDate) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
+  and companyId in (
+    select distinct companyId from `rise-core-log.coreData.companies` where isTest != true
+    and companyId != 'f114ad26-949d-44b4-87e9-8528afc76ce4' -- rise vision company
+  )
 ),
 activeDisplays as (
   select distinct display_id FROM `client-side-events.Player_Data.configuration` 

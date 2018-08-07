@@ -1,0 +1,32 @@
+#standardSQL
+
+WITH
+
+allDisplays AS (
+  SELECT DATE(ts) AS date, display_id, event, event_details, error_details
+  FROM `client-side-events.Widget_Events.spreadsheet_events*`
+  WHERE _TABLE_SUFFIX = "20XXXXXX"
+  AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+  AND display_id IN (
+    SELECT DISTINCT(display_id)
+      FROM `client-side-events.Installer_Events.events*`
+      WHERE _TABLE_SUFFIX = "20XXXXXX"
+      AND installer_version NOT LIKE "beta_%"
+      AND event = "install complete"
+  )
+)
+
+SELECT COUNT(distinct display_id) as display_count, SUBSTR(event_details, 0, 200) AS details, error_details
+FROM allDisplays
+WHERE event = "error"
+AND event_details != 'spreadsheet not published'
+AND error_details NOT LIKE "%400%"
+AND error_details NOT LIKE "%403%"
+AND error_details NOT LIKE "%404%"
+AND error_details NOT LIKE "%code: 0%"
+AND CONCAT(display_id, CAST(date AS STRING)) IN (
+    SELECT CONCAT(display_id, CAST(date AS STRING))
+    FROM allDisplays
+    WHERE (event = "configuration"))
+GROUP BY details, error_details
+ORDER BY display_count DESC

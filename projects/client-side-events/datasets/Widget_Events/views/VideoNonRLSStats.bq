@@ -8,6 +8,7 @@ allDisplays AS (
   WHERE _TABLE_SUFFIX BETWEEN FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
   AND FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
   AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+  AND (version="2.0.0" OR version="1.1.0")
 )
 
 SELECT * FROM (
@@ -20,7 +21,6 @@ SELECT * FROM (
     FROM allDisplays
     WHERE event = "configuration"
     AND event_details NOT LIKE "%rls%"
-    AND (version="2.0.0" OR version="1.1.0")
     GROUP BY date
   ) a
   LEFT JOIN (
@@ -29,7 +29,12 @@ SELECT * FROM (
       SELECT date, display_id FROM allDisplays
       WHERE event IN ("rise storage error","storage api error")
       AND configuration NOT LIKE "%rls%"
-      AND (version="2.0.0" OR version="1.1.0")
+      AND CONCAT(display_id, CAST(date AS STRING)) IN
+          (
+            SELECT CONCAT(display_id, CAST(date AS STRING))
+            FROM allDisplays
+            WHERE (event = "configuration" AND event_details NOT LIKE "%rls%")
+          )
 
       UNION ALL
 
@@ -38,7 +43,12 @@ SELECT * FROM (
       AND configuration NOT LIKE "%rls%"
       AND (event_details = "video - Error loading media: File could not be played" OR event_details LIKE "%MEDIA_ERR%")
       AND file_url NOT LIKE "risemedialibrary-%"
-      AND (version="2.0.0" OR version="1.1.0")
+      AND CONCAT(display_id, CAST(date AS STRING)) IN
+          (
+            SELECT CONCAT(display_id, CAST(date AS STRING))
+            FROM allDisplays
+            WHERE (event = "configuration" AND event_details NOT LIKE "%rls%")
+          )
 
       UNION ALL
 
@@ -47,7 +57,12 @@ SELECT * FROM (
       AND configuration NOT LIKE "%rls%"
       AND event_details != "The request failed with status code: 404"
       AND event_details IS NOT NULL
-      AND (version="2.0.0" OR version="1.1.0")
+      AND CONCAT(display_id, CAST(date AS STRING)) IN
+          (
+            SELECT CONCAT(display_id, CAST(date AS STRING))
+            FROM allDisplays
+            WHERE (event = "configuration" AND event_details NOT LIKE "%rls%")
+          )
     )
 
     GROUP BY date

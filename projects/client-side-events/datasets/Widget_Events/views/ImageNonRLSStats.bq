@@ -31,6 +31,11 @@ SELECT * FROM (
       AND event_details IS NOT NULL
       AND event_details IN ('rise storage error', 'rise cache error', 'storage api error')
       AND error_details != "The request failed with status code: 404"
+      AND CONCAT(display_id, CAST(date AS STRING)) IN (
+        SELECT CONCAT(display_id, CAST(date AS STRING))
+        FROM allDisplays
+        WHERE (event = "configuration" AND event_details NOT LIKE "%rls%")
+      )
     )
 
     GROUP BY date

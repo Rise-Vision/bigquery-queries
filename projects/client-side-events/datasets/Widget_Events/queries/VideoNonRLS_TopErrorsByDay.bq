@@ -1,0 +1,53 @@
+#standardSQL
+
+WITH
+
+allDisplays AS (
+  SELECT DATE(ts) AS date, display_id, event, event_details, file_url, configuration, version
+  FROM `client-side-events.Widget_Events.video_v2_events*`
+  WHERE _TABLE_SUFFIX = "20XXXXXX"
+  AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+  AND (version="2.0.0" OR version="1.1.0")
+)
+
+SELECT COUNT(distinct display_id) as display_count, SUBSTR(event_details, 0, 200) AS details
+FROM (
+  SELECT date, display_id, event_details FROM allDisplays
+  WHERE event IN ("rise storage error","storage api error")
+  AND configuration NOT LIKE "%rls%"
+  AND CONCAT(display_id, CAST(date AS STRING)) IN
+            (
+              SELECT CONCAT(display_id, CAST(date AS STRING))
+              FROM allDisplays
+              WHERE (event = "configuration" AND event_details NOT LIKE "%rls%")
+            )
+
+  UNION ALL
+
+  SELECT date, display_id, event_details FROM allDisplays
+  WHERE event = "player error"
+  AND configuration NOT LIKE "%rls%"
+  AND (event_details = "video - Error loading media: File could not be played" OR event_details LIKE "%MEDIA_ERR%")
+  AND file_url NOT LIKE "risemedialibrary-%"
+  AND CONCAT(display_id, CAST(date AS STRING)) IN (
+    SELECT CONCAT(display_id, CAST(date AS STRING))
+    FROM allDisplays
+    WHERE (event = "configuration" AND event_details NOT LIKE "%rls%")
+  )
+
+  UNION ALL
+
+  SELECT date, display_id, event_details FROM allDisplays
+  WHERE event = "rise cache error"
+  AND configuration NOT LIKE "%rls%"
+  AND event_details != "The request failed with status code: 404"
+  AND event_details IS NOT NULL
+  AND CONCAT(display_id, CAST(date AS STRING)) IN (
+    SELECT CONCAT(display_id, CAST(date AS STRING))
+    FROM allDisplays
+    WHERE (event = "configuration" AND event_details NOT LIKE "%rls%")
+  )
+)
+
+GROUP BY details
+ORDER BY display_count DESC

@@ -72,9 +72,9 @@ FROM (
   FROM
     image_rls_single
   LEFT JOIN image_rls_folder ON image_rls_folder.date = image_rls_single.date
-  LEFT JOIN image_non_rls ON DATE(TIMESTAMP(image_non_rls.date)) = image_rls_single.date
+  LEFT JOIN image_non_rls ON image_non_rls.date = image_rls_single.date
   LEFT JOIN video_rls_single ON video_rls_single.date = image_rls_single.date
   LEFT JOIN video_rls_folder ON video_rls_folder.date = image_rls_single.date
-  LEFT JOIN video_non_rls ON DATE(TIMESTAMP(video_non_rls.date)) = image_rls_single.date
+  LEFT JOIN video_non_rls ON video_non_rls.date = image_rls_single.date
 )
 ORDER by date DESC

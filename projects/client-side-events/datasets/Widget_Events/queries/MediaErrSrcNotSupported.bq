@@ -1,0 +1,9 @@
+#standardSQL
+
+SELECT display_id, file_url
+FROM `client-side-events.Widget_Events.video_v2_events*`
+WHERE _TABLE_SUFFIX = FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+AND event_details LIKE 'MEDIA_ERR_SRC_NOT_SUPPORTED - The media could not be loaded%'
+AND configuration LIKE '%rls%'
+GROUP BY display_id, file_url
+ORDER BY file_url

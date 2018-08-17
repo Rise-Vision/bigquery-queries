@@ -13,7 +13,7 @@ allDisplays AS (
 SELECT COUNT(distinct display_id) as display_count, SUBSTR(event_details, 0, 200) AS details
 FROM (
   SELECT date, display_id, event_details FROM allDisplays
-  WHERE event IN ("rise storage error","storage api error")
+  WHERE event IN ("rise storage error", "storage api error", "rise cache not running")
   AND configuration NOT LIKE "%rls%"
   AND CONCAT(display_id, CAST(date AS STRING)) IN
             (

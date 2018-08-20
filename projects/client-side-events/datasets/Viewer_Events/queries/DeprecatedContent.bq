@@ -1,0 +1,101 @@
+#standardSQL
+
+SELECT a.display_id, b.company_id,
+  IF(a.deprecated_content LIKE '%76441df8-019c-44ba-8edb-19946d0ac7a0%', '76441df8-019c-44ba-8edb-19946d0ac7a0', NULL) AS cenique_android_video,
+  IF(a.deprecated_content LIKE '%8630ca8e-0178-4f1e-befa-edba8e006e83%', '8630ca8e-0178-4f1e-befa-edba8e006e83', NULL) AS my_rise_player_video_widget,
+  IF(a.deprecated_content LIKE '%18d3281b-7369-4b5d-9153-0f11f75d3c19%', '18d3281b-7369-4b5d-9153-0f11f75d3c19', NULL) AS digital_signage_video_widget,
+  IF(a.deprecated_content LIKE '%1dd69714-6384-433e-b71e-ea1e6c1d7396%', '1dd69714-6384-433e-b71e-ea1e6c1d7396', NULL) AS video_folder_widget,
+  IF(a.deprecated_content LIKE '%video item used%', 'video item used', NULL) AS video_item,
+  IF(a.deprecated_content LIKE '%2d407395-d1ae-452c-bc27-78124a47132b%', '2d407395-d1ae-452c-bc27-78124a47132b', NULL) AS video_widget_1_0_0,
+  IF(a.deprecated_content LIKE '%cfdede80-e5b0-41a9-a67d-09cb54c81ee4%', 'cfdede80-e5b0-41a9-a67d-09cb54c81ee4', NULL) AS rss_gadget,
+  IF(a.deprecated_content LIKE '%f9b409b5-561a-4705-941b-3ab06091eafd%', 'f9b409b5-561a-4705-941b-3ab06091eafd', NULL) AS headline_news_gadget,
+  IF(a.deprecated_content LIKE '%d665a08a-c070-4e19-ac1e-08e4aaefec0a%', 'd665a08a-c070-4e19-ac1e-08e4aaefec0a', NULL) AS sport_scores_gadget,
+  IF(a.deprecated_content LIKE '%e7077c61-8dd4-413c-a883-d113e6d004c2%', 'e7077c61-8dd4-413c-a883-d113e6d004c2', NULL) AS directory_gadget,
+  IF(a.deprecated_content LIKE '%text item used%', 'text item used', NULL) AS text_item,
+  IF(a.deprecated_content LIKE '%ba0da120-7c67-437f-9caf-73585bd30c74%', 'ba0da120-7c67-437f-9caf-73585bd30c74', NULL) AS old_text_widget,
+  IF(a.deprecated_content LIKE '%d5dba0af-ebf6-4cf8-adf9-2b6ee1bf9f6e%', 'd5dba0af-ebf6-4cf8-adf9-2b6ee1bf9f6e', NULL) AS text_scroller_gadget,
+  IF(a.deprecated_content LIKE '%0c8b2a21-06e6-462e-865d-8d6820fc93a8%', '0c8b2a21-06e6-462e-865d-8d6820fc93a8', NULL) AS cenique_android_text_scroller,
+  IF(a.deprecated_content LIKE '%520b07f3-7b63-47b3-8c01-14adb0c9c6d2%', '520b07f3-7b63-47b3-8c01-14adb0c9c6d2', NULL) AS image_folder_widget,
+  IF(a.deprecated_content LIKE '%image item used%', 'image item used', NULL) AS image_item,
+  IF(a.deprecated_content LIKE '%ee0649ea-8939-4404-a6c7-b14bbc14b8af%', 'ee0649ea-8939-4404-a6c7-b14bbc14b8af', NULL) AS weather_gadget,
+  IF(a.deprecated_content LIKE '%dcc0529a-5cbd-4b2a-85a5-d22c0e0bf674%', 'dcc0529a-5cbd-4b2a-85a5-d22c0e0bf674', NULL) AS weather_widget,
+  IF(a.deprecated_content LIKE '%85b6e397-6c4b-4bfc-82b0-1b07c2729b1f%', '85b6e397-6c4b-4bfc-82b0-1b07c2729b1f', NULL) AS weather_widget_deprecated,
+  IF(a.deprecated_content LIKE '%dda25b35-16ce-41e2-abd8-92c8f351d693%', 'dda25b35-16ce-41e2-abd8-92c8f351d693', NULL) AS google_calendar_gadget,
+  IF(a.deprecated_content LIKE '%3866e96c-7980-444f-b85b-711aae8a860b%', '3866e96c-7980-444f-b85b-711aae8a860b', NULL) AS google_spreadsheet_gadget,
+  IF(a.deprecated_content LIKE '%3e5b7c81-9cea-4db8-ab19-bf172c4768b0%', '3e5b7c81-9cea-4db8-ab19-bf172c4768b0', NULL) AS google_spreadsheet_widget_0_1_0,
+  IF(a.deprecated_content LIKE '%f757673d-a04d-4c55-93bf-3d3763755f81%', 'f757673d-a04d-4c55-93bf-3d3763755f81', NULL) AS google_spreadsheet_widget_1_0_0,
+  IF(a.deprecated_content LIKE '%18fe9f88-e927-4097-991f-7db5633837c9%', '18fe9f88-e927-4097-991f-7db5633837c9', NULL) AS clock_gadget,
+  IF(a.deprecated_content LIKE '%3d6f717b-d6df-4965-8bee-f98764af1b94%', '3d6f717b-d6df-4965-8bee-f98764af1b94', NULL) AS world_clock_gadget,
+  IF(a.deprecated_content LIKE '%d202343e-49ff-4097-bda1-0b6f264cad5a%', 'd202343e-49ff-4097-bda1-0b6f264cad5a', NULL) AS world_clock_widget,
+  IF(a.deprecated_content LIKE '%7abf0254-eb52-44b4-afb7-b88644cfdd4c%', '7abf0254-eb52-44b4-afb7-b88644cfdd4c', NULL) AS world_clock_widget_deprecated,
+  IF(a.deprecated_content LIKE '%29e88871-f9de-4469-8298-d11cc7d46f8f%', '29e88871-f9de-4469-8298-d11cc7d46f8f', NULL) AS cenique_android_webpage_gadget,
+  IF(a.deprecated_content LIKE '%18653107-b13f-4ea1-83b3-44022a309f66%', '18653107-b13f-4ea1-83b3-44022a309f66', NULL) AS web_page_gadget,
+  IF(a.deprecated_content LIKE '%1301fa85-27a1-4209-92ea-b19b5899db09%', '1301fa85-27a1-4209-92ea-b19b5899db09', NULL) AS web_page_widget_deprecated,
+  IF(a.deprecated_content LIKE '%43034ed5-12e4-406b-872c-07d7736879bb%', '43034ed5-12e4-406b-872c-07d7736879bb', NULL) AS web_page_widget_inactive,
+  IF(a.deprecated_content LIKE '%url item used%', 'url item used', NULL) AS url_item,
+  IF(a.deprecated_content LIKE '%HTML item used%', 'HTML item used', NULL) AS html_item,
+  IF(a.deprecated_content LIKE '%22751adc-f3cb-41e1-9d52-83b4b4e7ca60%', '22751adc-f3cb-41e1-9d52-83b4b4e7ca60', NULL) AS vimeo_gadget,
+  IF(a.deprecated_content LIKE '%cae38867-6d18-4089-ade3-375f8dd64d63%', 'cae38867-6d18-4089-ade3-375f8dd64d63', NULL) AS twitter_gadget,
+  IF(a.deprecated_content LIKE '%f15ddbdb-66f5-4753-8f4b-a545c51fc97b%', 'f15ddbdb-66f5-4753-8f4b-a545c51fc97b', NULL) AS animated_item_profiler,
+  IF(a.deprecated_content LIKE '%c6acd4b7-2fa4-42ca-ad62-39ec65013432%', 'c6acd4b7-2fa4-42ca-ad62-39ec65013432', NULL) AS static_item_profiler,
+  IF(a.deprecated_content LIKE '%11e487bb-7135-418f-9ea5-f016aa0437cd%', '11e487bb-7135-418f-9ea5-f016aa0437cd', NULL) AS rss_list_gadget,
+  IF(a.deprecated_content LIKE '%578f2d20-d868-4600-a5c3-cb3f43bc5493%', '578f2d20-d868-4600-a5c3-cb3f43bc5493', NULL) AS tv_gadget,
+  IF(a.deprecated_content LIKE '%341eb116-b6f8-4f74-874e-2193c85a586a%', '341eb116-b6f8-4f74-874e-2193c85a586a', NULL) AS bulletin
+FROM
+(
+  SELECT display_id, STRING_AGG(DISTINCT event_details, ',') AS deprecated_content
+  FROM `client-side-events.Viewer_Events.events*`
+  WHERE _TABLE_SUFFIX = FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+  AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+  AND event_details IN (
+    '76441df8-019c-44ba-8edb-19946d0ac7a0', -- Cenique Android Video
+    '8630ca8e-0178-4f1e-befa-edba8e006e83', -- My Rise Player Video Widget
+    '18d3281b-7369-4b5d-9153-0f11f75d3c19', -- Scott's Digital Signage Android Video Widget 2.0
+    '1dd69714-6384-433e-b71e-ea1e6c1d7396', -- Video Folder Widget
+    'video item used',
+    '2d407395-d1ae-452c-bc27-78124a47132b', -- Video Widget v 1.0.0
+    'cfdede80-e5b0-41a9-a67d-09cb54c81ee4', -- RSS Gadget
+    'f9b409b5-561a-4705-941b-3ab06091eafd', -- Headline News Gadget
+    'd665a08a-c070-4e19-ac1e-08e4aaefec0a', -- Sport Scores Gadget
+    'e7077c61-8dd4-413c-a883-d113e6d004c2', -- Directory Gadget
+    'text item used',
+    'ba0da120-7c67-437f-9caf-73585bd30c74', -- Text Widget (old)
+    'd5dba0af-ebf6-4cf8-adf9-2b6ee1bf9f6e', -- Text Scroller Gadget
+    '0c8b2a21-06e6-462e-865d-8d6820fc93a8', -- Cenique Android Text Scroller
+    '520b07f3-7b63-47b3-8c01-14adb0c9c6d2', -- Image Folder Widget
+    'image item used',
+    'ee0649ea-8939-4404-a6c7-b14bbc14b8af', -- Weather Gadget
+    'dcc0529a-5cbd-4b2a-85a5-d22c0e0bf674', -- Weather Widget
+    '85b6e397-6c4b-4bfc-82b0-1b07c2729b1f', -- Weather Widget Deprecated
+    'dda25b35-16ce-41e2-abd8-92c8f351d693', -- Google Calendar Gadget (Deprecated)
+    '3866e96c-7980-444f-b85b-711aae8a860b', -- Google Spreadsheet Gadget (Deprecated)
+    '3e5b7c81-9cea-4db8-ab19-bf172c4768b0', -- Google Spreadsheet Widget v 0.1.0
+    'f757673d-a04d-4c55-93bf-3d3763755f81', -- Google Spreadsheet Widget v 1.0.0
+    '18fe9f88-e927-4097-991f-7db5633837c9', -- Clock Gadget
+    '3d6f717b-d6df-4965-8bee-f98764af1b94', -- World Clock Gadget
+    'd202343e-49ff-4097-bda1-0b6f264cad5a', -- World Clock Widget
+    '7abf0254-eb52-44b4-afb7-b88644cfdd4c', -- World Clock Widget (deprecated)
+    '29e88871-f9de-4469-8298-d11cc7d46f8f', -- Cenique Android Webpage Gadget
+    '18653107-b13f-4ea1-83b3-44022a309f66', -- Web Page Gadget
+    '1301fa85-27a1-4209-92ea-b19b5899db09', -- Web Page Widget (deprecated)
+    '43034ed5-12e4-406b-872c-07d7736879bb', -- Web Page Widget (inactive)
+    'url item used',
+    'HTML item used',
+    '22751adc-f3cb-41e1-9d52-83b4b4e7ca60', -- Vimeo Gadget
+    'cae38867-6d18-4089-ade3-375f8dd64d63', -- Twitter Gadget
+    'f15ddbdb-66f5-4753-8f4b-a545c51fc97b', -- Animated Item Profiler
+    'c6acd4b7-2fa4-42ca-ad62-39ec65013432', -- Static Item Profiler
+    '11e487bb-7135-418f-9ea5-f016aa0437cd', -- RSS List Gadget
+    '578f2d20-d868-4600-a5c3-cb3f43bc5493', -- TV Gadget
+    '341eb116-b6f8-4f74-874e-2193c85a586a'  -- Bulletin
+  )
+  GROUP BY display_id
+) AS a
+LEFT OUTER JOIN
+(
+  SELECT displayId AS display_id, MIN(companyId) AS company_id
+  FROM `rise-core-log.coreData.displays`
+  GROUP BY displayId
+) AS b
+ON a.display_id = b.display_id
+ORDER BY LENGTH(a.deprecated_content) DESC

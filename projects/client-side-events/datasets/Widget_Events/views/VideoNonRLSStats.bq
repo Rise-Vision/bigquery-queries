@@ -27,7 +27,7 @@ SELECT * FROM (
     SELECT date, COUNT(DISTINCT(display_id)) AS failed_count
     FROM (
       SELECT date, display_id FROM allDisplays
-      WHERE event IN ("rise storage error","storage api error")
+      WHERE event IN ("rise storage error", "storage api error", "rise cache not running")
       AND configuration NOT LIKE "%rls%"
       AND CONCAT(display_id, CAST(date AS STRING)) IN
           (

@@ -14,6 +14,7 @@ FROM (
       INTEGER(cenique.display_count) AS cenique_display_count,
       INTEGER(android.display_count) AS android_display_count,
       INTEGER(total.display_count - v3.display_count - v2.display_count - v1.display_count - cap.display_count - cenique.display_count - android.display_count) AS third_part_display_count,
+      INTEGER(chros.display_count) AS chros_display_count,
     FROM (
       SELECT
         date,
@@ -542,7 +543,74 @@ FROM (
       GROUP BY
         date)cap
     ON
-      total.date = cap.date)),
+      total.date = cap.date
+    LEFT JOIN (
+      SELECT
+        date,
+        EXACT_COUNT_DISTINCT( display_id) AS display_count
+      FROM (
+        SELECT
+          display_id,
+          date
+        FROM (
+          SELECT
+            active.display_id AS display_id,
+            active.date AS date
+          FROM (
+            SELECT
+              display_id,
+              DATE(ts) AS date
+            FROM
+              TABLE_DATE_RANGE([client-side-events:Viewer_Events.events],
+                DATE_ADD(CURRENT_TIMESTAMP(), -4, "DAY"),
+                DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
+            GROUP BY
+              display_id,
+              date)active
+          INNER JOIN (
+            SELECT
+              display_id
+            FROM
+              [client-side-events:Player_Data.configuration]
+            WHERE
+              (player_name="RisePlayer" OR player_name="(Beta) RisePlayer")
+              AND os_description LIKE "Chrome OS%"
+              AND display_id NOT IN (
+              SELECT
+                t.display_id
+              FROM
+                [client-side-events:Player_Data.configuration] t
+              INNER JOIN (
+                SELECT
+                  display_id,
+                  MAX(ts) maxTs
+                FROM
+                  [client-side-events:Player_Data.configuration]
+                GROUP BY
+                  display_id) tm
+              ON
+                t.display_id=tm.display_id
+                AND t.ts=tm.maxTs
+              WHERE
+                (player_name != "Cenique"
+                  AND os_description LIKE "Android%")
+                OR player_name="Cenique"
+                OR ((player_name = ""
+                    OR player_name IS NULL)
+                  AND player_version LIKE "2.0%")
+                OR player_name="RisePlayerPackagedApp"
+                OR player_name="RisePlayerElectron"
+                OR (player_name="RisePlayer"
+                  AND (player_version LIKE "2015%"
+                    OR player_version LIKE "2016%")))
+            GROUP BY
+              display_id) configuration
+          ON
+            active.display_id=configuration.display_id) activeconfiguration)
+      GROUP BY
+        date)chros
+    ON
+      total.date=chros.date)),
   (
   SELECT
     *

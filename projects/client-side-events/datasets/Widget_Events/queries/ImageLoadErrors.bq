@@ -1,0 +1,23 @@
+#standardSQL
+
+WITH
+
+allDisplays AS (
+  SELECT *
+  FROM `client-side-events.Widget_Events.image_events*`
+  WHERE _TABLE_SUFFIX = "20XXXXXX"
+  AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+)
+
+SELECT DISTINCT(file_url) as file, display_id
+FROM allDisplays
+WHERE event = "error"
+AND event_details = "image load error"
+AND configuration = "storage file (rls)"
+AND CONCAT(display_id, CAST(Date(ts) AS STRING)) IN (
+    SELECT CONCAT(display_id, CAST(Date(ts) AS STRING))
+    FROM allDisplays
+    WHERE event = "configuration"
+    AND event_details = "storage file (rls)"
+)
+GROUP BY file, display_id

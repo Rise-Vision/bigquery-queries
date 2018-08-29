@@ -2,17 +2,27 @@
 
 WITH
 
-allDisplays AS (
-  SELECT DATE(ts) AS date, display_id, event, event_details, file_url, local_url, configuration
-  FROM `client-side-events.Widget_Events.video_v2_events*`
-  WHERE _TABLE_SUFFIX = "20XXXXXX"
-  AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
-  AND display_id IN (
-    SELECT DISTINCT(display_id)
+electronStableDisplays AS (
+  SELECT DISTINCT(display_id)
       FROM `client-side-events.Installer_Events.events*`
       WHERE _TABLE_SUFFIX = "20XXXXXX"
       AND installer_version NOT LIKE "beta_%"
-      AND event = "install complete"
+),
+
+chromeOSStableDisplays AS (
+  SELECT DISTINCT(id)
+        FROM `client-side-events.ChromeOS_Player_Events.events`
+        WHERE ts >= "20XX-XX-XX 00:00:00" AND ts < "20XX-XX-XX 00:00:00"
+        AND player_version NOT LIKE "beta_%"
+),
+
+allDisplays AS (
+  SELECT DATE(ts) AS date, *
+  FROM `client-side-events.Widget_Events.video_v2_events*`
+  WHERE _TABLE_SUFFIX = "20XXXXXX"
+  AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+  AND (
+    display_id IN (SELECT * FROM electronStableDisplays) OR display_id IN (SELECT * FROM chromeOSStableDisplays)
   )
 )
 
@@ -25,7 +35,8 @@ FROM (
             (
               SELECT CONCAT(display_id, CAST(date AS STRING))
               FROM allDisplays
-              WHERE (event = "configuration" AND event_details = "storage folder (rls)")
+              WHERE event = "configuration"
+              AND event_details = "storage folder (rls)"
             )
 
   UNION ALL
@@ -36,7 +47,8 @@ FROM (
   AND CONCAT(display_id, CAST(date AS STRING)) IN (
     SELECT CONCAT(display_id, CAST(date AS STRING))
     FROM allDisplays
-    WHERE (event = "configuration" AND event_details = "storage folder (rls)")
+    WHERE event = "configuration"
+    AND event_details = "storage folder (rls)"
   )
 )
 

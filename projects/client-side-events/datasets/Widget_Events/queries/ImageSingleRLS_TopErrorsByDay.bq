@@ -2,17 +2,27 @@
 
 WITH
 
+electronStableDisplays AS (
+  SELECT DISTINCT(display_id)
+      FROM `client-side-events.Installer_Events.events*`
+      WHERE _TABLE_SUFFIX = "20XXXXXX"
+      AND installer_version NOT LIKE "beta_%"
+),
+
+chromeOSStableDisplays AS (
+  SELECT DISTINCT(id)
+        FROM `client-side-events.ChromeOS_Player_Events.events`
+        WHERE ts >= "20XX-XX-XX 00:00:00" AND ts < "20XX-XX-XX 00:00:00"
+        AND player_version NOT LIKE "beta_%"
+),
+
 allDisplays AS (
-  SELECT DATE(ts) AS date, display_id, event, event_details, error_details, file_url, configuration
+  SELECT DATE(ts) AS date, *
   FROM `client-side-events.Widget_Events.image_events*`
   WHERE _TABLE_SUFFIX = "20XXXXXX"
   AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
-  AND display_id IN (
-    SELECT DISTINCT(display_id)
-      FROM `client-side-events.Installer_Events.events*`
-        WHERE _TABLE_SUFFIX = "20XXXXXX"
-      AND installer_version NOT LIKE "beta_%"
-      AND event = "install complete"
+  AND (
+    display_id IN (SELECT * FROM electronStableDisplays) OR display_id IN (SELECT * FROM chromeOSStableDisplays)
   )
 )
 
@@ -23,6 +33,8 @@ AND configuration = "storage file (rls)"
 AND CONCAT(display_id, CAST(date AS STRING)) IN (
     SELECT CONCAT(display_id, CAST(date AS STRING))
     FROM allDisplays
-    WHERE (event = "configuration" AND event_details = "storage file (rls)"))
+    WHERE event = "configuration"
+    AND event_details = "storage file (rls)"
+)
 GROUP BY details
 ORDER BY display_count DESC

@@ -5,6 +5,7 @@ WITH
 electronStableDisplays AS (
   SELECT DISTINCT(display_id)
       FROM `client-side-events.Installer_Events.events*`
+      /* change date */
       WHERE _TABLE_SUFFIX = "20XXXXXX"
       AND installer_version NOT LIKE "beta_%"
 ),
@@ -12,13 +13,15 @@ electronStableDisplays AS (
 chromeOSStableDisplays AS (
   SELECT DISTINCT(id)
         FROM `client-side-events.ChromeOS_Player_Events.events`
-        WHERE ts >= "20XX-XX-XX 00:00:00" AND ts < "20XX-XX-XX 00:00:00"
-        AND player_version NOT LIKE "beta_%"
+        /* uncomment and change dates */
+        /* WHERE ts >= "20XX-XX-XX 00:00:00" AND ts < "20XX-XX-XX 00:00:00"
+        AND player_version NOT LIKE "beta_%" */
 ),
 
 allDisplays AS (
   SELECT DATE(TIMESTAMP(ts)) AS date, *
   FROM `client-side-events.Widget_Events.rss_events*`
+  /* change date */
   WHERE _TABLE_SUFFIX = "20XXXXXX"
   AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
   AND (

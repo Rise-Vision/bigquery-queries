@@ -1,38 +1,79 @@
-SELECT * FROM
-(
-  SELECT INTEGER(usageCount) as usageCount,
-         IFNULL(INTEGER(errorCount),0) as errorCount,
-         ((usageCount-IFNULL(INTEGER(errorCount),0))/usageCount) as Reliability,
-         usage.date as usage_date,
-         IFNULL(INTEGER(componentUsage.componentUsageCount),0) as componentUsageCount
-    FROM
-      (SELECT COUNT(DISTINCT display_id) as usageCount, Date(ts) AS date
-        FROM TABLE_DATE_RANGE(Widget_Events.rss_events, DATE_ADD(CURRENT_TIMESTAMP(), -3, 'DAY'), CURRENT_TIMESTAMP())
-          WHERE event = 'configuration'
-          AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
-          GROUP BY date
-      ) AS usage
-    OUTER JOIN EACH
-      (SELECT COUNT(DISTINCT display_id) as errorCount, Date(ts) AS date
-        FROM TABLE_DATE_RANGE(Widget_Events.rss_events, DATE_ADD(CURRENT_TIMESTAMP(), -3, 'DAY'), CURRENT_TIMESTAMP())
-        WHERE event="error"
-        AND event_details IS NOT NULL
-        AND event_details IN ('rise rss error', 'canvas width is over the max size')
-        AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
-        GROUP BY date
-      ) AS error
-    ON usage.date=error.date
-    OUTER JOIN EACH
-      (SELECT COUNT(DISTINCT display_id) as componentUsageCount, Date(ts) as date
-        FROM TABLE_DATE_RANGE(Widget_Events.component_rss_events, DATE_ADD(CURRENT_TIMESTAMP(), -3, 'DAY'), CURRENT_TIMESTAMP())
-        WHERE usage_type = 'standalone'
-        GROUP BY date
-      ) AS componentUsage
-    ON usage.date=componentUsage.date
-  ORDER BY usage.date
+#standardSQL
+
+WITH
+
+electronStableDisplays AS (
+  SELECT DISTINCT(display_id)
+      FROM `client-side-events.Installer_Events.events*`
+      WHERE _TABLE_SUFFIX BETWEEN FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
+      AND FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+      AND installer_version NOT LIKE "beta_%"
 ),
-(
-  SELECT * FROM [client-side-events:Aggregate_Tables.RssDailyReliability]
-  WHERE usage_date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -3, "DAY"))
+
+chromeOSStableDisplays AS (
+  SELECT DISTINCT(id)
+        FROM `client-side-events.ChromeOS_Player_Events.events`
+        WHERE ts BETWEEN TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
+        AND TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
+        AND player_version NOT LIKE "beta_%"
+),
+
+allDisplays AS (
+  SELECT DATE(TIMESTAMP(ts)) AS date, *
+  FROM `client-side-events.Widget_Events.rss_events*`
+  WHERE _TABLE_SUFFIX BETWEEN FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
+  AND FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+  AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+  AND (
+    display_id IN (SELECT * FROM electronStableDisplays) OR display_id IN (SELECT * FROM chromeOSStableDisplays)
+  )
+)
+
+SELECT * FROM (
+  SELECT
+     usageCount,
+     IFNULL(errorCount,0) as errorCount,
+     ((usageCount-IFNULL(errorCount,0))/usageCount) as Reliability,
+     CAST(usage.date as String) as usage_date,
+     IFNULL(componentUsage.componentUsageCount,0) as componentUsageCount
+  FROM (
+    SELECT COUNT(DISTINCT display_id) as usageCount, date
+    FROM allDisplays
+    WHERE event = "configuration"
+    GROUP BY date
+  ) AS usage
+  LEFT JOIN (
+    SELECT COUNT(DISTINCT display_id) as errorCount, date
+    FROM (
+        SELECT display_id, date FROM allDisplays
+        WHERE event = "error"
+        AND event_details IS NOT NULL
+        AND event_details IN ("rise rss error")
+        AND CONCAT(display_id, CAST(date AS STRING)) IN
+            (
+              SELECT CONCAT(display_id, CAST(date AS STRING))
+              FROM allDisplays
+              WHERE event = "configuration"
+            )
+    )
+    GROUP BY date
+  ) AS error
+  ON usage.date=error.date
+
+  LEFT JOIN (
+    SELECT COUNT(DISTINCT display_id) as componentUsageCount, Date(ts) as date
+    FROM `client-side-events.Widget_Events.component_rss_events*`
+    WHERE _TABLE_SUFFIX BETWEEN FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
+    AND FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+    AND usage_type = 'standalone'
+    GROUP BY date
+  ) AS componentUsage
+  ON usage.date=componentUsage.date
+
+  UNION ALL
+
+  SELECT usageCount, errorCount, Reliability, usage_date, componentUsageCount
+  FROM `client-side-events.Aggregate_Tables.RssDailyReliability`
+  WHERE DATE(TIMESTAMP(usage_date)) < DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY)
 )
 ORDER BY usage_date DESC

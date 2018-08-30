@@ -2,17 +2,30 @@
 
 WITH
 
-allDisplays AS (
-  SELECT DATE(TIMESTAMP(ts)) AS date, display_id, event, event_details, error_details
-  FROM `client-side-events.Widget_Events.text_events*`
-  WHERE _TABLE_SUFFIX = "20XXXXXX"
-  AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
-  AND display_id IN (
-    SELECT DISTINCT(display_id)
+electronStableDisplays AS (
+  SELECT DISTINCT(display_id)
       FROM `client-side-events.Installer_Events.events*`
+      /* change date */
       WHERE _TABLE_SUFFIX = "20XXXXXX"
       AND installer_version NOT LIKE "beta_%"
-      AND event = "install complete"
+),
+
+chromeOSStableDisplays AS (
+  SELECT DISTINCT(id)
+        FROM `client-side-events.ChromeOS_Player_Events.events`
+        /* uncomment and change dates */
+        /* WHERE ts >= "20XX-XX-XX 00:00:00" AND ts < "20XX-XX-XX 00:00:00"
+        AND player_version NOT LIKE "beta_%" */
+),
+
+allDisplays AS (
+  SELECT DATE(TIMESTAMP(ts)) AS date, *
+  FROM `client-side-events.Widget_Events.text_events*`
+    /* change date */
+  WHERE _TABLE_SUFFIX = "20XXXXXX"
+  AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+  AND (
+    display_id IN (SELECT * FROM electronStableDisplays) OR display_id IN (SELECT * FROM chromeOSStableDisplays)
   )
 )
 

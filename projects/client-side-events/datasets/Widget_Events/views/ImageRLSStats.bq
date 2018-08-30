@@ -2,19 +2,30 @@
 
 WITH
 
-allDisplays AS (
-  SELECT DATE(ts) AS date, display_id, event, event_details, error_details, file_url, configuration
-  FROM `client-side-events.Widget_Events.image_events*`
-  WHERE _TABLE_SUFFIX BETWEEN FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
-  AND FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
-  AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
-  AND display_id IN (
-    SELECT DISTINCT(display_id)
+electronStableDisplays AS (
+  SELECT DISTINCT(display_id)
       FROM `client-side-events.Installer_Events.events*`
       WHERE _TABLE_SUFFIX BETWEEN FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
       AND FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
       AND installer_version NOT LIKE "beta_%"
-      AND event = "install complete"
+),
+
+chromeOSStableDisplays AS (
+  SELECT DISTINCT(id)
+        FROM `client-side-events.ChromeOS_Player_Events.events`
+        WHERE ts BETWEEN TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
+        AND TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
+        AND player_version NOT LIKE "beta_%"
+),
+
+allDisplays AS (
+  SELECT DATE(ts) AS date, *
+  FROM `client-side-events.Widget_Events.image_events*`
+  WHERE _TABLE_SUFFIX BETWEEN FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
+  AND FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+  AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+  AND (
+    display_id IN (SELECT * FROM electronStableDisplays) OR display_id IN (SELECT * FROM chromeOSStableDisplays)
   )
 )
 
@@ -26,7 +37,8 @@ SELECT * FROM (
   FROM (
     SELECT date, COUNT(DISTINCT(display_id)) AS total_count
     FROM allDisplays
-    WHERE (event = "configuration" AND event_details = "storage file (rls)")
+    WHERE event = "configuration"
+    AND event_details = "storage file (rls)"
     GROUP BY date
   ) a
   LEFT JOIN (
@@ -39,7 +51,8 @@ SELECT * FROM (
                 (
                   SELECT CONCAT(display_id, CAST(date AS STRING))
                   FROM allDisplays
-                  WHERE (event = "configuration" AND event_details = "storage file (rls)")
+                  WHERE event = "configuration"
+                  AND event_details = "storage file (rls)"
                 )
     )
     GROUP BY date

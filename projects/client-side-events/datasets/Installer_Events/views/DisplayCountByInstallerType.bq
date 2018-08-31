@@ -537,7 +537,9 @@ FROM (
                 OR (player_name="RisePlayer"
                   AND (player_version LIKE "2015%"
                     OR player_version LIKE "2016%"))
-                OR player_name="RisePlayerElectron")) configuration
+                OR player_name="RisePlayerElectron"
+                OR (player_name="RisePlayer" OR player_name="(Beta) RisePlayer")
+                   AND os_description LIKE "Chrome OS%")) configuration
           ON
             active.display_id=configuration.display_id) activeconfiguration)
       GROUP BY

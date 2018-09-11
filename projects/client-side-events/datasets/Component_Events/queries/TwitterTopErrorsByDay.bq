@@ -10,7 +10,7 @@ SELECT
     SELECT event, event_details, display_id, version, DATE(ts) AS date
     FROM `client-side-events.Component_Events.rise_twitter_events`
     WHERE display_id != "xxxxxx"
-  ) displays
+ ) displays
   LEFT JOIN
   (
     SELECT * FROM
@@ -19,6 +19,7 @@ SELECT
       SELECT event, event_details, display_id, version, DATE(ts) AS date
       FROM `client-side-events.Component_Events.rise_twitter_events`
       WHERE (event = "Error")
+      and STARTS_WITH(event_details, "Twitter Credentials unauthenticated") IS FALSE
 
       UNION ALL
 
@@ -27,25 +28,6 @@ SELECT
       FROM `client-side-events.Module_Events.tweet_events`
       WHERE event = "error"
       AND STARTS_WITH(event_details, "Credentials do not exist") IS FALSE
-
-      UNION ALL
-
-      /* Select displays that have Authorization errors but should be auhtorized by player */
-      SELECT events.event, events.event_details, events.display_id, events.version, DATE(events.ts) AS date
-      FROM
-      (
-        /* Select the player config event that was valid at the time of the Unauthorized log */
-        SELECT events.event, events.event_details, events.display_id as display_id, events.version, events.ts as event_ts, max(configs.ts) as config_ts
-        FROM `client-side-events.Component_Events.rise_twitter_events` events
-        LEFT JOIN `client-side-events.Player_Data.configuration` configs
-        ON events.display_id = configs.display_id AND events.ts > configs.ts
-        GROUP BY events.event, events.event_details, events.version, events.display_id, events.ts
-      ) max_config_ts
-      LEFT JOIN `client-side-events.Component_Events.rise_twitter_events` events
-      ON max_config_ts.display_id = events.display_id AND max_config_ts.event_ts = events.ts
-      LEFT JOIN `client-side-events.Player_Data.configuration` configs
-      ON events.display_id = configs.display_id AND max_config_ts.config_ts = configs.ts
-      WHERE configs.offline_subscription = TRUE AND events.event = 'Unauthorized'
     )
   ) errors
   ON displays.display_id = errors.display_id AND displays.date = errors.date

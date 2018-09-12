@@ -29,7 +29,7 @@ FROM (
             DATE(timestamp) AS date,
           FROM
             TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_,
-              DATE_ADD(CURRENT_TIMESTAMP(), -4, "DAY"),
+              DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"),
               DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
           GROUP BY
             display_id,
@@ -42,7 +42,7 @@ FROM (
             DATE(ts) AS date
           FROM
             TABLE_DATE_RANGE([client-side-events:Viewer_Events.events],
-              DATE_ADD(CURRENT_TIMESTAMP(), -4, "DAY"),
+              DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"),
               DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
           GROUP BY
             display_id,
@@ -64,7 +64,7 @@ FROM (
             DATE(timestamp) AS date
           FROM
             TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_,
-              DATE_ADD(CURRENT_TIMESTAMP(), -4, "DAY"),
+              DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"),
               DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
           GROUP BY
             display_id,
@@ -83,7 +83,7 @@ FROM (
               DATE(ts) AS date
             FROM
               TABLE_DATE_RANGE([client-side-events:Viewer_Events.events],
-                DATE_ADD(CURRENT_TIMESTAMP(), -4, "DAY"),
+                DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"),
                 DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
             GROUP BY
               display_id,
@@ -146,7 +146,7 @@ FROM (
             DATE(timestamp) AS date
           FROM
             TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_,
-              DATE_ADD(CURRENT_TIMESTAMP(), -4, "DAY"),
+              DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"),
               DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
           GROUP BY
             display_id,
@@ -168,7 +168,7 @@ FROM (
               DATE(ts) AS date
             FROM
               TABLE_DATE_RANGE([client-side-events:Viewer_Events.events],
-                DATE_ADD(CURRENT_TIMESTAMP(), -4, "DAY"),
+                DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"),
                 DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
             GROUP BY
               display_id,
@@ -231,7 +231,7 @@ FROM (
             DATE(timestamp) AS date
           FROM
             TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_,
-              DATE_ADD(CURRENT_TIMESTAMP(), -4, "DAY"),
+              DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"),
               DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
           GROUP BY
             display_id,
@@ -253,7 +253,7 @@ FROM (
               DATE(ts) AS date
             FROM
               TABLE_DATE_RANGE([client-side-events:Viewer_Events.events],
-                DATE_ADD(CURRENT_TIMESTAMP(), -4, "DAY"),
+                DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"),
                 DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
             GROUP BY
               display_id,
@@ -315,7 +315,7 @@ FROM (
             DATE(timestamp) AS date
           FROM
             TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_,
-              DATE_ADD(CURRENT_TIMESTAMP(), -4, "DAY"),
+              DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"),
               DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
           GROUP BY
             display_id,
@@ -334,7 +334,7 @@ FROM (
               DATE(ts) AS date
             FROM
               TABLE_DATE_RANGE([client-side-events:Viewer_Events.events],
-                DATE_ADD(CURRENT_TIMESTAMP(), -4, "DAY"),
+                DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"),
                 DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
             GROUP BY
               display_id,
@@ -397,7 +397,7 @@ FROM (
             DATE(timestamp) AS date
           FROM
             TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_,
-              DATE_ADD(CURRENT_TIMESTAMP(), -4, "DAY"),
+              DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"),
               DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
           GROUP BY
             display_id,
@@ -418,7 +418,7 @@ FROM (
               DATE(ts) AS date
             FROM
               TABLE_DATE_RANGE([client-side-events:Viewer_Events.events],
-                DATE_ADD(CURRENT_TIMESTAMP(), -4, "DAY"),
+                DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"),
                 DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
             GROUP BY
               display_id,
@@ -480,7 +480,7 @@ FROM (
             DATE(timestamp) AS date
           FROM
             TABLE_DATE_RANGE(rvaserver2:appengine_logs_v2.appengine_googleapis_com_request_log_,
-              DATE_ADD(CURRENT_TIMESTAMP(), -4, "DAY"),
+              DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"),
               DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
           GROUP BY
             display_id,
@@ -499,7 +499,7 @@ FROM (
               DATE(ts) AS date
             FROM
               TABLE_DATE_RANGE([client-side-events:Viewer_Events.events],
-                DATE_ADD(CURRENT_TIMESTAMP(), -4, "DAY"),
+                DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"),
                 DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
             GROUP BY
               display_id,
@@ -539,7 +539,7 @@ FROM (
                     OR player_version LIKE "2016%"))
                 OR player_name="RisePlayerElectron"
                 OR (player_name="RisePlayer" OR player_name="(Beta) RisePlayer")
-                   AND os_description LIKE "Chrome OS%")) configuration
+                   AND installer_version IS NULL AND player_version LIKE "2018%")) configuration
           ON
             active.display_id=configuration.display_id) activeconfiguration)
       GROUP BY
@@ -564,7 +564,7 @@ FROM (
               DATE(ts) AS date
             FROM
               TABLE_DATE_RANGE([client-side-events:Viewer_Events.events],
-                DATE_ADD(CURRENT_TIMESTAMP(), -4, "DAY"),
+                DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"),
                 DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY"))
             GROUP BY
               display_id,
@@ -576,7 +576,7 @@ FROM (
               [client-side-events:Player_Data.configuration]
             WHERE
               (player_name="RisePlayer" OR player_name="(Beta) RisePlayer")
-              AND os_description LIKE "Chrome OS%"
+              AND installer_version IS NULL AND player_version LIKE "2018%"
               AND display_id NOT IN (
               SELECT
                 t.display_id
@@ -619,6 +619,6 @@ FROM (
   FROM
     [client-side-events:Aggregate_Tables.DisplayCountByInstallerType]
   WHERE
-    date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -4, "DAY")))
+    date < DATE(DATE_ADD(CURRENT_TIMESTAMP(), -1, "DAY")))
 ORDER BY
   date ASC

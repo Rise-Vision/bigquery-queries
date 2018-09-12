@@ -1,0 +1,80 @@
+#standardSQL
+
+WITH
+
+electronEntries AS
+(
+  SELECT DATE(ts) AS date, display_id, event
+  FROM `client-side-events.Installer_Events.events*`
+  WHERE _TABLE_SUFFIX BETWEEN
+    FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
+  AND
+    FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+  AND installer_version NOT LIKE 'beta_%'
+),
+
+chromeOsEntries AS
+(
+  SELECT DATE(ts) AS date, id AS display_id, event
+  FROM `client-side-events.ChromeOS_Player_Events.events`
+  WHERE ts BETWEEN
+    TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
+  AND
+    TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
+  AND player_version NOT LIKE 'beta_%'
+),
+
+allEntries AS
+(
+  SELECT date, display_id FROM electronEntries
+  UNION ALL
+  SELECT date, display_id FROM chromeOsEntries
+),
+
+localStorageEntries AS
+(
+  SELECT DATE(ts) AS date, display_id, event
+  FROM `client-side-events.Module_Events.local_storage_events`
+  WHERE ts BETWEEN
+    TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
+  AND
+    TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
+  AND display_id IN ( SELECT display_id FROM allEntries )
+)
+
+SELECT * FROM
+(
+  SELECT
+    updated.date,
+    updated.count AS updated_count,
+    display.count AS display_count,
+    updated.count / display.count AS displays_with_update_per_day
+  FROM
+  (
+    SELECT events.date, COUNT(DISTINCT display_id) AS count
+    FROM
+    (
+      SELECT date, display_id, event FROM localStorageEntries
+      UNION ALL
+      SELECT date, display_id, event FROM electronEntries
+      UNION ALL
+      SELECT date, display_id, event FROM chromeOsEntries
+    ) AS events
+    WHERE event IN ( 'presentation updated', 'schedule updated', 'MS file UPDATE received', 'MS file ADD received', 'MS file DELETE received' )
+    GROUP BY date
+  ) AS updated
+  INNER JOIN
+  (
+    SELECT date, COUNT(DISTINCT display_id) AS count
+    FROM allEntries
+    GROUP BY date
+  ) AS display
+  ON updated.date = display.date
+
+  UNION ALL
+
+  SELECT date, updated_count, display_count, displays_with_update_per_day
+  FROM `client-side-events.Aggregate_Tables.ContentDisplaysWithUpdate`
+  WHERE DATE(TIMESTAMP(date)) < DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY)
+)
+ORDER BY date DESC

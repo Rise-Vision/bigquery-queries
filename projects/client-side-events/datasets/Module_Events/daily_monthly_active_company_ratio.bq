@@ -1,0 +1,134 @@
+#standardSQL
+
+WITH
+
+electronDailyActiveEntries AS
+(
+  SELECT display_id, event
+  FROM `client-side-events.Installer_Events.events*`
+  WHERE _TABLE_SUFFIX BETWEEN
+    FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
+  AND
+    FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+  AND installer_version NOT LIKE 'beta_%'
+),
+
+electronDailyActiveDisplays AS
+(
+  SELECT display_id FROM electronDailyActiveEntries
+  WHERE event IN ( 'presentation updated', 'schedule updated' )
+),
+
+chromeOsDailyActiveDisplays AS
+(
+  SELECT id AS display_id
+  FROM `client-side-events.ChromeOS_Player_Events.events`
+  WHERE ts BETWEEN
+    TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
+  AND
+    TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
+  AND event IN ( 'presentation updated', 'schedule updated', 'MS file UPDATE received', 'MS file ADD received', 'MS file DELETE received' )
+  AND player_version NOT LIKE 'beta_%'
+),
+
+localStorageDailyActiveDisplays AS
+(
+  SELECT display_id
+  FROM `client-side-events.Module_Events.local_storage_events`
+  WHERE ts BETWEEN
+    TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
+  AND
+    TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
+  AND event IN ( 'MS file UPDATE received', 'MS file ADD received', 'MS file DELETE received' )
+  AND display_id IN ( SELECT display_id FROM electronDailyActiveEntries )
+),
+
+electronMonthlyActiveEntries AS
+(
+  SELECT display_id, event
+  FROM `client-side-events.Installer_Events.events*`
+  WHERE _TABLE_SUFFIX BETWEEN
+    FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -30 DAY))
+  AND
+    FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+  AND installer_version NOT LIKE 'beta_%'
+),
+
+electronMonthlyActiveDisplays AS
+(
+  SELECT display_id FROM electronMonthlyActiveEntries
+  WHERE event IN ( 'presentation updated', 'schedule updated' )
+),
+
+chromeOsMonthlyActiveDisplays AS
+(
+  SELECT id AS display_id
+  FROM `client-side-events.ChromeOS_Player_Events.events`
+  WHERE ts BETWEEN
+    TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -30 DAY))
+  AND
+    TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
+  AND event IN ( 'presentation updated', 'schedule updated', 'MS file UPDATE received', 'MS file ADD received', 'MS file DELETE received' )
+  AND player_version NOT LIKE 'beta_%'
+),
+
+localStorageMonthlyActiveDisplays AS
+(
+  SELECT display_id
+  FROM `client-side-events.Module_Events.local_storage_events`
+  WHERE ts BETWEEN
+    TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -30 DAY))
+  AND
+    TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
+  AND event IN ( 'MS file UPDATE received', 'MS file ADD received', 'MS file DELETE received' )
+  AND display_id IN ( SELECT display_id FROM electronMonthlyActiveEntries )
+)
+
+SELECT * FROM
+(
+  SELECT
+    DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY) AS date,
+    daily.active_companies AS daily_active_companies,
+    monthly.active_companies AS monthly_active_companies,
+    daily.active_companies / monthly.active_companies AS daily_monthly_active_company_ratio
+  FROM
+  (
+    SELECT COUNT(DISTINCT company_id) AS active_companies
+    FROM
+    (
+      SELECT companyId AS company_id
+      FROM `rise-core-log.coreData.displays`
+      WHERE displayId IN
+      (
+        SELECT display_id FROM electronDailyActiveDisplays
+        UNION ALL
+        SELECT display_id FROM chromeOsDailyActiveDisplays
+        UNION ALL
+        SELECT display_id FROM localStorageDailyActiveDisplays
+      )
+    )
+  ) AS daily,
+  (
+    SELECT COUNT(DISTINCT company_id) AS active_companies
+    FROM
+    (
+      SELECT companyId AS company_id
+      FROM `rise-core-log.coreData.displays`
+      WHERE displayId IN
+      (
+        SELECT display_id FROM electronMonthlyActiveDisplays
+        UNION ALL
+        SELECT display_id FROM chromeOsMonthlyActiveDisplays
+        UNION ALL
+        SELECT display_id FROM localStorageMonthlyActiveDisplays
+      )
+    )
+  ) AS monthly
+
+  UNION ALL
+
+  SELECT date, daily_active_companies, monthly_active_companies, daily_monthly_active_company_ratio
+  FROM `client-side-events.Aggregate_Tables.DailyMonthlyActiveCompanyRatio`
+  WHERE DATE(TIMESTAMP(date)) < DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)
+)
+ORDER BY date DESC

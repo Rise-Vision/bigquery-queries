@@ -6,9 +6,7 @@ electronDailyActiveEntries AS
 (
   SELECT display_id, event
   FROM `client-side-events.Installer_Events.events*`
-  WHERE _TABLE_SUFFIX BETWEEN
-    FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
-  AND
+  WHERE _TABLE_SUFFIX =
     FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
   AND installer_version NOT LIKE 'beta_%'
 ),
@@ -24,7 +22,7 @@ chromeOsDailyActiveDisplays AS
   SELECT id AS display_id
   FROM `client-side-events.ChromeOS_Player_Events.events`
   WHERE ts BETWEEN
-    TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
+    TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
   AND
     TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
   AND event IN ( 'presentation updated', 'schedule updated', 'MS file UPDATE received', 'MS file ADD received', 'MS file DELETE received' )
@@ -36,7 +34,7 @@ localStorageDailyActiveDisplays AS
   SELECT display_id
   FROM `client-side-events.Module_Events.local_storage_events`
   WHERE ts BETWEEN
-    TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY))
+    TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
   AND
     TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
   AND event IN ( 'MS file UPDATE received', 'MS file ADD received', 'MS file DELETE received' )

@@ -85,7 +85,7 @@ localStorageMonthlyActiveDisplays AS
 SELECT * FROM
 (
   SELECT
-    DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY) AS date,
+    DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY) AS date,
     daily.active_companies AS daily_active_companies,
     monthly.active_companies AS monthly_active_companies,
     daily.active_companies / monthly.active_companies AS daily_monthly_active_company_ratio

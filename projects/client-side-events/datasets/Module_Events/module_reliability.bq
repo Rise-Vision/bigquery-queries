@@ -1,0 +1,43 @@
+#standardSQL
+SELECT
+  a.date,
+  a.pct content,
+  b.pct licensing,
+  c.pct localMessaging,
+  d.pct displayControl,
+  e.pct systemMetrics,
+  f.pct localStorage,
+  g.pct watchdog,
+  h.pct chrOS
+FROM
+  `client-side-events.Module_Events.content_reliability` a
+LEFT JOIN
+  `client-side-events.Module_Events.licensing_reliability` b
+ON
+  b.date = a.date
+LEFT JOIN
+  `client-side-events.Module_Events.local_messaging_reliability` c
+ON
+  c.date = a.date
+LEFT JOIN
+  `client-side-events.Module_Events.display_control_reliability` d
+ON
+  d.date = a.date
+LEFT JOIN
+  `client-side-events.System_Metrics_Events.system_metrics_reliability` e
+ON
+  e.date = a.date
+LEFT JOIN
+  `client-side-events.Module_Events.local_storage_reliability` f
+ON
+  f.date = a.date
+LEFT JOIN
+  `client-side-events.Module_Events.watchdog_reliability` g
+ON
+  g.date = a.date
+LEFT JOIN
+  `client-side-events.ChromeOS_Player_Events.reliability` h
+ON
+  h.date = a.date  
+ORDER BY
+  date DESC

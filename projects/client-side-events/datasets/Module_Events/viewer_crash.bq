@@ -1,18 +1,19 @@
 #standardSQL
 WITH
-moduleVersion AS (SELECT version FROM `client-side-events.Module_Events.module_versions` WHERE name = "player-electron"),
+playerVersion AS (SELECT version FROM `client-side-events.Module_Events.module_versions` WHERE name = "player-electron"),
+launcherVersion AS (SELECT version FROM `client-side-events.Module_Events.module_versions` WHERE name = "launcher"),
 
 recentEventsCurrentVersion AS (
   SELECT
-    event,
+    event, event_details,
     display_id,
     DATE(ts) date
   FROM
     `client-side-events.Installer_Events.events*`
   WHERE
    _TABLE_SUFFIX BETWEEN FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY)) AND FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
-    AND installer_version = (select version from moduleVersion))
-
+    AND (installer_version = (select version from playerVersion) or installer_version = (select version from launcherVersion)))
+    
 SELECT
   total.date,
   (total.total - ifnull(errors.errors, 0)) / total.total * 100 pct
@@ -30,7 +31,7 @@ LEFT JOIN (
   SELECT
     date,
     COUNT(DISTINCT display_id) errors
-  FROM recentEventsCurrentVersion where event = "viewer webContents crashed"
+  FROM recentEventsCurrentVersion where event = "watchdog-restart" and event_details = "viewer"
   GROUP BY
     date) errors
 ON

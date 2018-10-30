@@ -1,0 +1,18 @@
+#standardSQL
+
+SELECT
+  ids.*,
+  config.os_description,
+  config.player_name,
+  config.installer_version,
+  config.player_version
+FROM
+  `client-side-events.Uptime_Events.DisplayUptimePctFourDaysAgoToYesterday` ids
+LEFT JOIN
+  `client-side-events.Player_Data.ConfigurationLatestStandardSQL` config
+ON
+  config.display_id = ids.display_id
+WHERE
+  date = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
+ORDER BY
+  day_uptime_pct

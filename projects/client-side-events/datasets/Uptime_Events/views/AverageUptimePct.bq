@@ -1,0 +1,9 @@
+#standardSQL
+
+SELECT
+  date,
+  avg(day_uptime_pct) average_uptime_pct
+FROM
+  `client-side-events.Uptime_Events.DisplayUptimePctFourDaysAgoToYesterday`
+GROUP BY
+  date

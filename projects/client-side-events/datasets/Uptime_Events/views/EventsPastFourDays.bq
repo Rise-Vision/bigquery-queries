@@ -1,0 +1,8 @@
+#standardSQL
+
+SELECT
+  *
+FROM
+  `client-side-events.Uptime_Events.events`
+WHERE
+  ts >= timestamp(DATE_SUB(current_date(), INTERVAL 4 DAY))

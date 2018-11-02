@@ -16,7 +16,7 @@ FROM (
   FROM
     `client-side-events.Uptime_Events.EventsPastFourDays`
   WHERE
-    DATE(ts) != CURRENT_DATE())
+    DATE(ts) < CURRENT_DATE())
 GROUP BY
   date,
   display_id

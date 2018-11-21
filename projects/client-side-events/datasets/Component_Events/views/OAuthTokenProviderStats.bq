@@ -1,0 +1,34 @@
+#StandardSQL
+
+SELECT * FROM
+(
+  SELECT
+    CURRENT_DATE as date,
+    (
+      SELECT COUNT( DISTINCT company_id )
+      FROM `client-side-events.Component_Events.rise_twitter_events`
+      WHERE _PARTITIONTIME >= TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+      AND _PARTITIONTIME < TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
+    ) as total_count,
+    (
+      SELECT count(*) FROM
+      (
+        SELECT
+          SUBSTR( REGEXP_REPLACE( textPayload, ".*companyId: ([^,]*),", "\\1" ), 1, 36 ) AS company_id
+        FROM `messaging-service-180514.oauth_token_provider_logs.oauth_token_provider_*`
+        WHERE _TABLE_SUFFIX = FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+        AND LOWER( textPayload ) LIKE '%error%'
+        AND textPayload LIKE '%companyId: %'
+        GROUP BY company_id
+
+      )
+    ) AS failed_count
+
+
+  UNION ALL
+
+  SELECT date, total_count, failed_count
+  FROM `client-side-events.Aggregate_Tables.OAuthTokenProviderStats`
+  WHERE date < DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)
+)
+ORDER BY date DESC

@@ -1,0 +1,5 @@
+#StandardSQL
+
+SELECT date, total_count, failed_count, ((total_count - failed_count)/total_count) as Reliability
+FROM `client-side-events.Aggregate_Tables.OAuthTokenProviderStats`
+ORDER BY date DESC

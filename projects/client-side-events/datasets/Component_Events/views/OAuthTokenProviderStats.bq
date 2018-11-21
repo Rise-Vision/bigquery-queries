@@ -20,10 +20,8 @@ SELECT * FROM
         AND LOWER( textPayload ) LIKE '%error%'
         AND textPayload LIKE '%companyId: %'
         GROUP BY company_id
-
       )
     ) AS failed_count
-
 
   UNION ALL
 

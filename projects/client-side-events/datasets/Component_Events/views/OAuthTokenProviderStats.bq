@@ -3,7 +3,7 @@
 SELECT * FROM
 (
   SELECT
-    CURRENT_DATE as date,
+    DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY) as date,
     (
       SELECT COUNT( DISTINCT company_id )
       FROM `client-side-events.Component_Events.rise_twitter_events`

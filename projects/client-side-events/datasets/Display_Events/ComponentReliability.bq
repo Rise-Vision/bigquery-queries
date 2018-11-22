@@ -1,0 +1,6 @@
+#StandardSQL
+
+SELECT date, rollout_stage, component, total_count, failed_count,
+  ((total_count - failed_count)/total_count) as Reliability
+FROM `client-side-events.Aggregate_Tables.ComponentStats`
+ORDER BY date DESC, rollout_stage DESC, component

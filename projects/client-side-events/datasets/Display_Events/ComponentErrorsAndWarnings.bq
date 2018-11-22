@@ -1,0 +1,35 @@
+#StandardSQL
+
+SELECT * FROM
+(
+  SELECT
+    DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY) as date,
+    level,
+    component,
+    event,
+    count(*) AS count FROM
+  (
+    SELECT DISTINCT display_id, source AS component, level, event
+    FROM `client-side-events.Display_Events.events_test`
+    WHERE ts >= TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+    AND ts < TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
+    AND platform = 'content'
+    AND display_id != 'DISPLAY_ID'
+    AND rollout_stage = 'beta' -- 'stable'
+    AND level IN ( 'severe', 'error', 'warning' )
+  )
+  GROUP BY level, component, event
+
+  UNION ALL
+
+  SELECT date, level, component, event, count
+  FROM `client-side-events.Aggregate_Tables.ComponentErrorsAndWarnings`
+  WHERE date < DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)
+)
+ORDER BY
+  CASE level
+    WHEN 'severe' THEN 1
+    WHEN 'error'  THEN 2
+    ELSE 3
+  END,
+  count DESC

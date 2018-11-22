@@ -1,0 +1,46 @@
+#StandardSQL
+
+WITH component_events AS
+(
+  SELECT DISTINCT display_id, rollout_stage, source AS component, level
+  FROM `client-side-events.Display_Events.events_test`
+  WHERE ts >= TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+  AND ts < TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
+  AND platform = 'content'
+  AND display_id != 'DISPLAY_ID'
+  AND rollout_stage IN( 'beta', 'stable' )
+)
+
+SELECT * FROM
+(
+  SELECT
+    DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY) as date,
+    total.rollout_stage,
+    total.component,
+    total.count AS total_count,
+    IFNULL( errors.count, 0 ) AS failed_count
+  FROM
+    (
+      SELECT rollout_stage, component, count(*) AS count FROM
+        ( SELECT * FROM component_events )
+      GROUP BY rollout_stage, component
+    ) AS total
+    LEFT OUTER JOIN
+    (
+      SELECT rollout_stage, component, count(*) AS count FROM
+      (
+        SELECT * FROM component_events
+        WHERE level IN ( 'severe', 'error' )
+      )
+      GROUP BY rollout_stage, component
+    ) AS errors
+    ON total.rollout_stage = errors.rollout_stage
+    AND total.component = errors.component
+
+  UNION ALL
+
+  SELECT date, rollout_stage, component, total_count, failed_count
+  FROM `client-side-events.Aggregate_Tables.ComponentStats`
+  WHERE date < DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)
+)
+ORDER BY date DESC, rollout_stage DESC, component

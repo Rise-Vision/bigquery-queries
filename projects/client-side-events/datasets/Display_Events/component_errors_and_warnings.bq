@@ -1,0 +1,21 @@
+#StandardSQL
+
+SELECT level, component, event, count(*) AS count FROM
+(
+  SELECT DISTINCT display_id, source AS component, level, event
+  FROM `client-side-events.Display_Events.events_test`
+  WHERE ts >= "2018-XX-YY 00:00:00"
+  AND ts < "2018-XX-ZZ 00:00:00"
+  AND platform = 'content'
+  AND display_id != 'DISPLAY_ID'
+  AND rollout_stage = 'beta' -- 'stable'
+  AND level IN ( 'severe', 'error', 'warning' )
+)
+GROUP BY level, component, event
+ORDER BY
+  CASE level
+    WHEN 'severe' THEN 1
+    WHEN 'error'  THEN 2
+    ELSE 3
+  END,
+  count DESC

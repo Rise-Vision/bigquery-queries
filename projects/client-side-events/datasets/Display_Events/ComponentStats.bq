@@ -3,7 +3,7 @@
 WITH component_events AS
 (
   SELECT DISTINCT display_id, rollout_stage, source AS component, level
-  FROM `client-side-events.Display_Events.events_test`
+  FROM `client-side-events.Display_Events.events`
   WHERE ts >= TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
   AND ts < TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
   AND platform = 'content'

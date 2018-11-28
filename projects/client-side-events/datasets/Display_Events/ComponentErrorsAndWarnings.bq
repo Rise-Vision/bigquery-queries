@@ -11,7 +11,7 @@ SELECT * FROM
     count(*) AS count FROM
   (
     SELECT DISTINCT display_id, source AS component, rollout_stage, level, event
-    FROM `client-side-events.Display_Events.events_test`
+    FROM `client-side-events.Display_Events.events`
     WHERE ts >= TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
     AND ts < TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
     AND platform = 'content'

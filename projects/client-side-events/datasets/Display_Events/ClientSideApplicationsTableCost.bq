@@ -1,0 +1,18 @@
+#StandardSQL
+
+WITH stats AS
+(
+  SELECT date, platform, source, size_kb, size_kb * cost_per_100mb / ( 1024 * 100 ) AS cost
+  FROM `client-side-events.Aggregate_Tables.ClientSideApplicationsTableStats`
+)
+
+SELECT stats.date, platform, source, stats.size_kb, cost,
+  FORMAT('%.10f', cost) AS cost_string,
+  stats.size_kb / total.size_kb AS participation_percentage
+FROM stats INNER JOIN
+(
+  SELECT date, SUM(size_kb) AS size_kb
+  FROM stats
+  GROUP BY date
+) total
+ON stats.date = total.date

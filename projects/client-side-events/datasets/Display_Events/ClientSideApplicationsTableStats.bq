@@ -1,0 +1,54 @@
+#StandardSQL
+
+WITH entry_counts AS
+(
+  SELECT platform, source,
+    SUM(
+      DIV(
+        (
+           8 + -- ts
+          11 + -- platform
+          25 + -- source
+          18 + -- version
+           8 + -- rollout_stage
+          14 + -- display id
+          38 + -- company id
+           9 + -- level
+          BYTE_LENGTH(event) +
+          BYTE_LENGTH(IFNULL(event_details, '')) +
+          BYTE_LENGTH(IFNULL(player.ip, '')) +
+          18 + -- player.version
+          BYTE_LENGTH(IFNULL(player.os, '')) +
+          BYTE_LENGTH(IFNULL(player.chrome_version, '')) +
+          BYTE_LENGTH(IFNULL(storage.file_url, '')) +
+          BYTE_LENGTH(IFNULL(storage.file_form, '')) +
+          BYTE_LENGTH(IFNULL(storage.local_url, '')) +
+          BYTE_LENGTH(IFNULL(storage.configuration, '')) +
+          BYTE_LENGTH(IFNULL(storage.file_path, '')) +
+          BYTE_LENGTH(IFNULL(component.id, ''))
+        ), 1024
+      ) + 1
+    ) AS size_kb
+    FROM `client-side-events.Display_Events.events`
+  WHERE ts >= TIMESTAMP( DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY) )
+  AND   ts <  TIMESTAMP( DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY) )
+  GROUP BY platform, source
+)
+
+SELECT * FROM
+(
+  SELECT
+    DATE_ADD( CURRENT_DATE(), INTERVAL -1 DAY ) as date,
+    platform,
+    source,
+    size_kb,
+    0.005 AS cost_per_100mb
+  FROM entry_counts
+
+  UNION ALL
+
+  SELECT date, platform, source, size_kb, cost_per_100mb
+  FROM `client-side-events.Aggregate_Tables.ClientSideApplicationsTableStats`
+  WHERE date < DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)
+)
+ORDER BY date DESC, platform, source

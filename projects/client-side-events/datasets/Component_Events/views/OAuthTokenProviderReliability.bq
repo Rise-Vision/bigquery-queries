@@ -31,6 +31,7 @@ FROM
       FROM `messaging-service-180514.oauth_token_provider_logs.oauth_token_provider_*`
       WHERE _TABLE_SUFFIX = FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
       AND LOWER( textPayload ) LIKE '%error%'
+      AND textPayload NOT LIKE '%Could not authenticate%'
       AND textPayload LIKE '%companyId: %'
     )
     GROUP BY date

@@ -1,4 +1,4 @@
-SELECT COUNT(DISTINCT core.companyId) as numberOfCompanies, templates.template_name
+SELECT EXACT_COUNT_DISTINCT(core.companyId) as numberOfCompanies, templates.template_name
 FROM
 (
   SELECT display_id, template_name

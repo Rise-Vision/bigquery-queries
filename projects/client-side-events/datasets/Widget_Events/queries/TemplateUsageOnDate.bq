@@ -1,0 +1,6 @@
+SELECT EXACT_COUNT_DISTINCT(display_id) as numberOfDisplays, template_name
+FROM [client-side-events:Widget_Events.template_events2018MMDD] -- adjust desired date, for example 20181205
+WHERE event = 'load'
+AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+GROUP BY template_name
+ORDER BY numberOfDisplays DESC

@@ -1,0 +1,12 @@
+SELECT EXACT_COUNT_DISTINCT(core.company) as numberOfCompanies
+FROM
+(
+  SELECT display_id
+  FROM TABLE_DATE_RANGE([client-side-events:Widget_Events.template_events], DATE_ADD(CURRENT_TIMESTAMP(), -30, 'DAY'), CURRENT_TIMESTAMP())
+  WHERE event = 'load'
+  AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+  GROUP BY display_id
+) AS templates
+INNER JOIN [rise-core-log:coreData.MapDisplayIdCompany] AS core
+ON templates.display_id = core.display_id
+ORDER BY numberOfCompanies DESC

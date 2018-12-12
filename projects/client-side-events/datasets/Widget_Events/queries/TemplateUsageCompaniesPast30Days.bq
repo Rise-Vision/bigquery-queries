@@ -8,6 +8,10 @@ FROM
     FROM TABLE_DATE_RANGE([client-side-events:Widget_Events.template_events], DATE_ADD(CURRENT_TIMESTAMP(), -30, 'DAY'), CURRENT_TIMESTAMP())
     WHERE event = 'load'
     AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+    AND template_id NOT IN (
+      '60868bdb-b7cc-44d1-a53e-1cbd5aa70fe9', -- Simple Video Presentation
+      '758113f9-2b45-44a8-9a73-21e09492b92c' -- Simple Image Presentation
+    )
     GROUP BY display_id
   ) AS templates
   INNER JOIN [rise-core-log:coreData.MapDisplayIdCompany] AS core

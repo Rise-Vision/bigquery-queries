@@ -539,7 +539,7 @@ FROM (
                     OR player_version LIKE "2016%"))
                 OR player_name="RisePlayerElectron"
                 OR (player_name="RisePlayer" OR player_name="(Beta) RisePlayer")
-                   AND installer_version IS NULL AND player_version LIKE "2018%")) configuration
+                   AND installer_version IS NULL AND REGEXP_EXTRACT(player_version, r"^([0-9]{4})") > "2017")) configuration
           ON
             active.display_id=configuration.display_id) activeconfiguration)
       GROUP BY
@@ -576,7 +576,7 @@ FROM (
               [client-side-events:Player_Data.configuration]
             WHERE
               (player_name="RisePlayer" OR player_name="(Beta) RisePlayer")
-              AND installer_version IS NULL AND player_version LIKE "2018%"
+              AND installer_version IS NULL AND REGEXP_EXTRACT(player_version, r"^([0-9]{4})") > "2017"
               AND display_id NOT IN (
               SELECT
                 t.display_id

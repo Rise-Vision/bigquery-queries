@@ -35,7 +35,8 @@ SELECT * FROM (
       UNION ALL
 
       SELECT date, display_id FROM allDisplays
-      WHERE event = 'launching viewer'
+      WHERE event = 'loading url'
+      AND event_details like 'https://viewer.risevision.com/Viewer.html%'
       AND CONCAT(display_id, CAST(date AS STRING)) NOT IN
       (
         SELECT CONCAT(display_id, CAST(DATE(ts) AS STRING))

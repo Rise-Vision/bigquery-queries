@@ -1,0 +1,16 @@
+select  
+  CURRENT_DATE() as collectionDate,
+  ifnull(S1.billToId, S1.companyId) as companyId, 
+  S1.subscriptionId as subscriptionId, 
+  S1.productName as name,
+  S1.status as status, 
+  S1.subscriptionDate as startDate, 
+  if(status != 'Cancelled', S1.currentPeriodEndDate, null) as renewalDate,
+  S1.cancellationDate as cancellationDate,
+  S1.cancellationReason as cancellationReason,
+  (S1.price * S1.quantity) as amount
+from `rise-store.storeData.subscriptions` S1
+inner join (select max(changedDate) as changedDate, subscriptionId from `rise-store.storeData.subscriptions` group by subscriptionId) S2 on S1.subscriptionId = S2.subscriptionId and S1.changedDate = S2.changedDate
+where status != 'Trial' and ifnull(abs(timestamp_diff(trialEndDate, cancellationDate, MINUTE)) > 1, true) -- Chargebee cancelled trials have trialEndDate ≈ cancellationDate
+and appId='s~rvaserver2' and legacyBilling = false and unit != 'Per Company'
+group by 1, 2, 3, 4, 5, 6, 7, 8, 9, 10

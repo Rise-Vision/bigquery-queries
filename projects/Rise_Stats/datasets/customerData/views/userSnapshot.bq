@@ -1,0 +1,20 @@
+select 
+  CURRENT_DATE() as collectionDate,
+  companyId,
+  U1.userId,
+  firstName,
+  lastName,
+  roles as role, 
+  email as contactEmail,
+  creationDate, 
+  lastLogin,
+  mailSyncEnabled as subscribedToNewsletter,
+  U3.subscriptionDate,
+  if(mailSyncEnabled = false, U4.unsubscriptionDate, null) as unsubscriptionDate,
+  hubSpotId
+from `rise-core-log.coreData.users` U1
+inner join (select max(id) as id, userId from `rise-core-log.coreData.users` group by userId) U2 on U1.userId = U2.userId and U1.id = U2.id
+left outer join (select min(changeDate) as subscriptionDate, userId from `rise-core-log.coreData.users` where mailSyncEnabled = true group by userId) U3 on U1.userId = U3.userId
+left outer join (select min(changeDate) as unsubscriptionDate, userId from `rise-core-log.coreData.users` where mailSyncEnabled = false group by userId) U4 on U1.userId = U4.userId
+where appId='s~rvaserver2' 
+group by 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13

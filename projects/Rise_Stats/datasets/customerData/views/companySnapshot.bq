@@ -1,0 +1,312 @@
+#standardSQL
+with
+
+productionCompanies as
+(
+select 
+  C.companyId,
+  C.name,
+  C.parentId,
+  C.street, 
+  C.unit,
+  C.city,
+  C.province as state,
+  C.country,
+  C.creationDate,
+  C.hubSpotId
+from `rise-core-log.coreData.companies` C
+inner join (select max(id) as id, companyId from `rise-core-log.coreData.companies` group by companyId) CC on C.id=CC.id
+where C.appId = 's~rvaserver2' and C.isTest = false
+),
+
+upToDateHierarchy as
+(
+select 
+  H.companyId,
+  H.ancestorId
+from `rise-core-log.coreData.hierarchy` H
+inner join (select max(id) as id, companyId from `rise-core-log.coreData.hierarchy` group by companyId) HH on H.id=HH.id
+where H.appId = 's~rvaserver2' 
+),
+
+hierarchy30DaysAgo as
+(
+select 
+  H.companyId,
+  H.ancestorId
+from `rise-core-log.coreData.hierarchy` H
+inner join (select max(id) as id, companyId from `rise-core-log.coreData.hierarchy` where changeDate <= timestamp(DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)) group by companyId) HH on H.id=HH.id
+where H.appId = 's~rvaserver2' 
+),
+
+subscompanyCounts as
+(
+select
+  ancestorId as companyId,
+  count(distinct companyId) as subCompanyCount
+from upToDateHierarchy H, H.ancestorId as ancestorId
+group by 1
+),
+
+companyNetwork as
+(
+select
+  ancestorId as companyId,
+  companyId as subCompanyId
+from upToDateHierarchy H, H.ancestorId as ancestorId
+union all
+select
+  companyId as companyId,
+  companyId as subCompanyId
+from upToDateHierarchy H
+),
+
+companyNetwork30DaysAgo as
+(
+select
+  ancestorId as companyId,
+  companyId as subCompanyId
+from hierarchy30DaysAgo H, H.ancestorId as ancestorId
+union all
+select
+  companyId as companyId,
+  companyId as subCompanyId
+from hierarchy30DaysAgo H
+),
+
+productionDisplays as
+(
+select 
+  D.displayId, 
+  companyId 
+from `rise-core-log.coreData.displays` D
+inner join (select max(id) as id, displayId from `rise-core-log.coreData.displays` where appId = 's~rvaserver2' group by displayId) D1 on D.displayId = D1.displayId
+where appId = 's~rvaserver2'
+),
+
+productionDisplays30DaysAgo as
+(
+select 
+  D.displayId, 
+  companyId 
+from `rise-core-log.coreData.displays` D
+inner join (select max(id) as id, displayId from `rise-core-log.coreData.displays` where appId = 's~rvaserver2' and changeDate <= timestamp(DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)) group by displayId) D1 on D.displayId = D1.displayId
+where appId = 's~rvaserver2'
+),
+
+activeDisplays as
+(
+select display_id as displayId
+from `client-side-events.Uptime_Events.events`
+where showing = true and connected = true and ts >= timestamp(DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY))
+group by 1
+),
+
+activeDisplays30DaysAgo as
+(
+select display_id as displayId
+from `client-side-events.Uptime_Events.events`
+where showing = true and connected = true and ts >= timestamp(DATE_SUB(CURRENT_DATE(), INTERVAL 37 DAY)) and ts <= timestamp(DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY))
+group by 1
+),
+
+licensedDisplays as
+(
+select
+ S.companyId,
+ displayId
+from `rise-core-log.coreData.companySubscriptions` S, S.playerProAssignedDisplays as displayId
+inner join (select max(id) as id, companyId from `rise-core-log.coreData.companySubscriptions` group by companyId) SS on S.id = SS.id
+),
+
+companyActiveDisplays as
+(
+select
+ D.companyId,
+ count(distinct A.displayId) as activeDisplayCount
+from productionDisplays D
+inner join activeDisplays A on A.displayId = D.displayId
+group by 1
+),
+
+networkActiveDisplayCount as
+(
+select
+ N.companyId,
+ count(distinct A.displayId) as networkActiveDisplayCount
+from companyNetwork N 
+inner join productionDisplays D on N.subCompanyId = D.companyId or N.companyId = D.companyId
+inner join activeDisplays A on A.displayId = D.displayId
+group by 1
+),
+
+networkActiveDisplayCount30DaysAgo as
+(
+select
+ N.companyId,
+ count(distinct A.displayId) as networkActiveDisplayCount30DaysAgo
+from companyNetwork30DaysAgo N 
+inner join productionDisplays30DaysAgo D on N.subCompanyId = D.companyId or N.companyId = D.companyId
+inner join activeDisplays30DaysAgo A on A.displayId = D.displayId
+group by 1
+),
+
+networkActiveLicensedDisplayCount as
+(
+select
+ N.companyId,
+ count(distinct A.displayId) as networkActiveLicensedDisplayCount
+from companyNetwork N 
+inner join productionDisplays D on N.subCompanyId = D.companyId or N.companyId = D.companyId
+inner join activeDisplays A on A.displayId = D.displayId
+inner join licensedDisplays L on A.displayId = L.displayId
+group by 1
+),
+
+companyLicenses as
+(
+select
+ S.companyId,
+ if((planSubscriptionStatus = 'Active' and planCurrentPeriodEndDate >= current_timestamp()) or 
+    (planSubscriptionStatus = 'Trial' and planTrialExpiryDate >= current_timestamp()), ifnull(planPlayerProLicenseCount, 0), 0) + 
+ if((playerProSubscriptionStatus = 'Active' and playerProCurrentPeriodEndDate >= current_timestamp()), ifnull(playerProLicenseCount, 0), 0) as licenseCount
+from `rise-core-log.coreData.companySubscriptions` S
+inner join (select max(id) as id, companyId from `rise-core-log.coreData.companySubscriptions` group by companyId) SS on S.id = SS.id
+),
+
+companyLicenses30DaysAgo as
+(
+select
+ S.companyId,
+ if((planSubscriptionStatus = 'Active' and planCurrentPeriodEndDate >= timestamp(DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY))) or 
+    (planSubscriptionStatus = 'Trial' and planTrialExpiryDate >= timestamp(DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY))), ifnull(planPlayerProLicenseCount, 0), 0) + 
+ if((playerProSubscriptionStatus = 'Active' and playerProCurrentPeriodEndDate >= timestamp(DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY))), ifnull(playerProLicenseCount, 0), 0) as licenseCount
+from `rise-core-log.coreData.companySubscriptions` S
+inner join (select max(id) as id, companyId from `rise-core-log.coreData.companySubscriptions` where changeDate <= timestamp(DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)) group by companyId) SS on S.id = SS.id
+),
+
+usedLicenses as
+(
+select
+ S.companyId,
+ count(distinct displayId) as usedLicenseCount
+from `rise-core-log.coreData.companySubscriptions` S, S.playerProAssignedDisplays as displayId
+inner join (select max(id) as id, companyId from `rise-core-log.coreData.companySubscriptions` group by companyId) SS on S.id = SS.id
+group by 1
+),
+
+unusedLicenseCount as 
+(
+select 
+ L.companyId,
+ if(L.licenseCount - ifnull(U.usedLicenseCount, 0) < 0, 0, L.licenseCount - ifnull(U.usedLicenseCount, 0)) as unusedLicenseCount
+from companyLicenses L
+left outer join usedLicenses U on L.companyId = U.companyId
+),
+
+networkLicenseCount as
+(
+select
+ N.companyId,
+ sum(L.licenseCount) as networkLicenseCount
+from companyNetwork N 
+inner join companyLicenses L on N.subCompanyId = L.companyId
+group by 1
+),
+
+networkLicenseCount30DaysAgo as
+(
+select
+ N.companyId,
+ sum(L.licenseCount) as networkLicenseCount30DaysAgo
+from companyNetwork30DaysAgo N 
+inner join companyLicenses30DaysAgo L on N.subCompanyId = L.companyId
+group by 1
+),
+
+companyConversion as
+(
+select  
+  ifnull(billToId, companyId) as companyId, 
+  min(subscriptionDate) as conversionDate
+from `rise-store.storeData.subscriptions`
+where status = 'Active'
+group by 1
+),
+
+companyUptime as 
+(
+select
+  D.companyId,
+  avg(U.day_uptime_pct) as uptime
+from productionDisplays D
+inner join (select day_uptime_pct, display_id from `client-side-events.Uptime_Events.DisplayUptimePctFourDaysAgoToYesterday` where date = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) U on D.displayId = U.display_id
+group by 1
+), 
+
+displaysUsingTemplates as
+(
+select display_id as displayId
+from `client-side-events.Widget_Events.template_events*`
+where
+  _TABLE_SUFFIX between FORMAT_DATE('%Y%m%d', DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)) AND FORMAT_DATE('%Y%m%d', CURRENT_DATE()) and
+  event = 'load' and
+  display_id NOT IN ('preview', '"display_id"', '"displayId"') and
+  template_id NOT IN (
+      '60868bdb-b7cc-44d1-a53e-1cbd5aa70fe9', -- Simple Video Presentation
+      '758113f9-2b45-44a8-9a73-21e09492b92c' -- Simple Image Presentation
+      )
+group by 1
+),
+
+templateUsage as
+(
+select
+ D.companyId,
+ count(distinct T.displayId) as templateDisplayCount
+from productionDisplays D
+inner join displaysUsingTemplates T on T.displayId = D.displayId
+inner join activeDisplays A on A.displayId = T.displayId
+group by 1
+)
+
+select 
+  CURRENT_DATE() as collectionDate,
+  C1.companyId,
+  C1.name,
+  C1.parentId,
+  CP.name as parentName,
+  C1.street, 
+  C1.unit,
+  C1.city,
+  C1.state,
+  C1.country,
+  C1.creationDate,
+  CU.uptime,
+  ifnull(SC.subCompanyCount, 0) as subcompanyCount,
+  ifnull(NL.networkLicenseCount, 0) as networkAvailableLicenseCount,
+  ifnull(ND.networkActiveDisplayCount, 0) as networkActiveDisplayCount,
+  ifnull(NLD.networkActiveLicensedDisplayCount, 0) as networkActiveLicensedDisplayCount,
+  ifnull(UL.unusedLicenseCount, 0) as networkUnusedLicenseCount,
+  ifnull(ND.networkActiveDisplayCount, 0) - ifnull(ND30.networkActiveDisplayCount30DaysAgo, 0) as networkActiveDisplayCountChange30d,
+  ifnull(NL.networkLicenseCount, 0) - ifnull(NL30.networkLicenseCount30DaysAgo, 0) as networkLicensedDisplayCountChange30d,
+  DATE_DIFF(DATE(CC.conversionDate), DATE(C1.creationDate), DAY) as daysToConvert,
+  if(ifnull(CAD.activeDisplayCount, 0) > 0, ifnull(TU.templateDisplayCount, 0) / ifnull(CAD.activeDisplayCount, 0), 0) as templateUsage,
+  if(ifnull(CL.licenseCount, 0) > 0, ifnull(CAD.activeDisplayCount, 0) / ifnull(CL.licenseCount, 0), 0) as displayUtilization,
+  if(ifnull(US.usedLicenseCount, 0) > 0, ifnull(CAD.activeDisplayCount, 0) / ifnull(US.usedLicenseCount, 0), 0) as displayIntent,
+  C1.hubSpotId
+from productionCompanies C1
+left outer join productionCompanies CP on C1.parentId = CP.companyId
+left outer join subscompanyCounts SC on C1.companyId = SC.companyId
+left outer join companyUptime CU on C1.companyId = CU.companyId
+left outer join networkLicenseCount NL on C1.companyId = NL.companyId
+left outer join networkLicenseCount30DaysAgo NL30 on C1.companyId = NL30.companyId
+left outer join networkActiveDisplayCount ND on C1.companyId = ND.companyId
+left outer join networkActiveDisplayCount30DaysAgo ND30 on C1.companyId = ND30.companyId
+left outer join networkActiveLicensedDisplayCount NLD on C1.companyId = NLD.companyId
+left outer join unusedLicenseCount UL on C1.companyId = UL.companyId
+left outer join companyConversion CC on C1.companyId = CC.companyId
+left outer join companyActiveDisplays CAD on C1.companyId = CAD.companyId
+left outer join companyLicenses CL on C1.companyId = CL.companyId
+left outer join usedLicenses US on C1.companyId = US.companyId
+left outer join templateUsage TU on C1.companyId = TU.companyId

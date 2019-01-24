@@ -12,7 +12,8 @@ select
   C.city,
   C.province as state,
   C.country,
-  C.creationDate
+  C.creationDate,
+  C.hubSpotId
 from `rise-core-log.coreData.companies` C
 inner join (select max(id) as id, companyId from `rise-core-log.coreData.companies` group by companyId) CC on C.id=CC.id
 where C.appId = 's~rvaserver2' and C.isTest = false
@@ -292,7 +293,8 @@ select
   DATE_DIFF(DATE(CC.conversionDate), DATE(C1.creationDate), DAY) as daysToConvert,
   if(ifnull(CAD.activeDisplayCount, 0) > 0, ifnull(TU.templateDisplayCount, 0) / ifnull(CAD.activeDisplayCount, 0), 0) as templateUsage,
   if(ifnull(CL.licenseCount, 0) > 0, ifnull(CAD.activeDisplayCount, 0) / ifnull(CL.licenseCount, 0), 0) as displayUtilization,
-  if(ifnull(US.usedLicenseCount, 0) > 0, ifnull(CAD.activeDisplayCount, 0) / ifnull(US.usedLicenseCount, 0), 0) as displayIntent
+  if(ifnull(US.usedLicenseCount, 0) > 0, ifnull(CAD.activeDisplayCount, 0) / ifnull(US.usedLicenseCount, 0), 0) as displayIntent,
+  C1.hubSpotId
 from productionCompanies C1
 left outer join productionCompanies CP on C1.parentId = CP.companyId
 left outer join subscompanyCounts SC on C1.companyId = SC.companyId

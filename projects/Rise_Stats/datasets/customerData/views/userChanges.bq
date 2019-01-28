@@ -1,0 +1,68 @@
+#standardSQL
+with
+
+latestData as
+(
+select
+  companyId,
+  userId, 
+  firstName, 
+  lastName, 
+  role, 
+  contactEmail, 
+  creationDate, 
+  lastLogin, 
+  subscribedToNewsletter, 
+  subscriptionDate, 
+  unsubscriptionDate, 
+  hubspotId
+from `rise-core-log.customerData.user`
+where collectionDate = (select max(collectionDate) from `rise-core-log.customerData.user`)
+),
+
+previousData as
+(
+select
+  companyId,
+  userId, 
+  firstName, 
+  lastName, 
+  role, 
+  contactEmail, 
+  creationDate, 
+  lastLogin, 
+  subscribedToNewsletter, 
+  subscriptionDate, 
+  unsubscriptionDate, 
+  hubspotId
+from `rise-core-log.customerData.user`
+where collectionDate = (select max(collectionDate) from (select collectionDate from `rise-core-log.customerData.user` where collectionDate < (select max(collectionDate) from `rise-core-log.customerData.user`)))
+)
+
+select 
+  L.companyId,
+  L.userId,
+  L.firstName,
+  L.lastName,
+  L.role,
+  L.contactEmail,
+  L.creationDate,
+  L.lastLogin,
+  L.subscribedToNewsletter,
+  L.subscriptionDate,
+  L.unsubscriptionDate,
+  L.hubspotId
+from latestData L
+left outer join previousData P on
+  L.companyId = P.companyId and L.userId = P.userId
+where  
+  ifnull(L.firstName, '') != ifnull(P.firstName, '') or 
+  ifnull(L.lastName, '') != ifnull(P.lastName, '') or 
+  ifnull(L.role, '') != ifnull(P.role, '') or 
+  ifnull(L.contactEmail, '') != ifnull(P.contactEmail, '') or 
+  ifnull(L.creationDate, timestamp('1900-01-01')) != ifnull(P.creationDate, timestamp('1900-01-01')) or 
+  ifnull(L.lastLogin, timestamp('1900-01-01')) != ifnull(P.lastLogin, timestamp('1900-01-01')) or 
+  ifnull(L.subscribedToNewsletter, false) != ifnull(P.subscribedToNewsletter, false) or 
+  ifnull(L.subscriptionDate, timestamp('1900-01-01')) != ifnull(P.subscriptionDate, timestamp('1900-01-01')) or 
+  ifnull(L.unsubscriptionDate, timestamp('1900-01-01')) != ifnull(P.unsubscriptionDate, timestamp('1900-01-01')) or 
+  ifnull(L.hubspotId, '') != ifnull(P.hubspotId, '')

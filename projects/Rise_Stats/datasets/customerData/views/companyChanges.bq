@@ -1,0 +1,113 @@
+#standardSQL
+with
+
+latestData as
+(
+select
+  companyId,
+  name,
+  parentId,
+  parentName,
+  street,
+  unit,
+  city,
+  state,
+  country,
+  creationDate,
+  uptime,
+  subcompanyCount, 
+  networkAvailableLicenseCount,
+  networkActiveDisplayCount,
+  networkActiveLicensedDisplayCount,
+  networkUnusedLicenseCount,
+  networkActiveDisplayCountChange30d,
+  networkLicensedDisplayCountChange30d,
+  daysToConvert,
+  templateUsage,
+  displayUtilization,
+  displayIntent,
+  hubspotId
+from `rise-core-log.customerData.company`
+where collectionDate = (select max(collectionDate) from `rise-core-log.customerData.company`)
+),
+
+previousData as
+(
+select
+  companyId,
+  name,
+  parentId,
+  parentName,
+  street,
+  unit,
+  city,
+  state,
+  country,
+  creationDate,
+  uptime,
+  subcompanyCount, 
+  networkAvailableLicenseCount,
+  networkActiveDisplayCount,
+  networkActiveLicensedDisplayCount,
+  networkUnusedLicenseCount,
+  networkActiveDisplayCountChange30d,
+  networkLicensedDisplayCountChange30d,
+  daysToConvert,
+  templateUsage,
+  displayUtilization,
+  displayIntent,
+  hubspotId
+from `rise-core-log.customerData.company`
+where collectionDate = (select max(collectionDate) from (select collectionDate from `rise-core-log.customerData.company` where collectionDate < (select max(collectionDate) from `rise-core-log.customerData.company`)))
+)
+
+select 
+  L.companyId,
+  L.name,
+  L.parentId,
+  L.parentName,
+  L.street,
+  L.unit,
+  L.city,
+  L.state,
+  L.country,
+  L.creationDate,
+  L.uptime,
+  L.subcompanyCount, 
+  L.networkAvailableLicenseCount,
+  L.networkActiveDisplayCount,
+  L.networkActiveLicensedDisplayCount,
+  L.networkUnusedLicenseCount,
+  L.networkActiveDisplayCountChange30d,
+  L.networkLicensedDisplayCountChange30d,
+  L.daysToConvert,
+  L.templateUsage,
+  L.displayUtilization,
+  L.displayIntent,
+  L.hubspotId
+from latestData L
+left outer join previousData P on
+  L.companyId = P.companyId
+where  
+  ifnull(L.name, '') != ifnull(P.name, '') or 
+  ifnull(L.parentId, '') != ifnull(P.parentId, '') or 
+  ifnull(L.parentName, '') != ifnull(P.parentName, '') or 
+  ifnull(L.street, '') != ifnull(P.street, '') or 
+  ifnull(L.unit, '') != ifnull(P.unit, '') or 
+  ifnull(L.city, '') != ifnull(P.city, '') or 
+  ifnull(L.state, '') != ifnull(P.state, '') or 
+  ifnull(L.country, '') != ifnull(P.country, '') or 
+  ifnull(L.creationDate, timestamp('1900-01-01')) != ifnull(P.creationDate, timestamp('1900-01-01')) or 
+  ifnull(L.uptime, -1.0) != ifnull(P.uptime, -1.0) or 
+  ifnull(L.subcompanyCount, -1) != ifnull(P.subcompanyCount, -1) or 
+  ifnull(L.networkAvailableLicenseCount, -1) != ifnull(P.networkAvailableLicenseCount, -1) or 
+  ifnull(L.networkActiveDisplayCount, -1) != ifnull(P.networkActiveDisplayCount, -1) or 
+  ifnull(L.networkActiveLicensedDisplayCount, -1) != ifnull(P.networkActiveLicensedDisplayCount, -1) or 
+  ifnull(L.networkUnusedLicenseCount, -1) != ifnull(P.networkUnusedLicenseCount, -1) or 
+  ifnull(L.networkActiveDisplayCountChange30d, -1) != ifnull(P.networkActiveDisplayCountChange30d, -1) or 
+  ifnull(L.networkLicensedDisplayCountChange30d, -1) != ifnull(P.networkLicensedDisplayCountChange30d, -1) or 
+  ifnull(L.daysToConvert, -1) != ifnull(P.daysToConvert, -1) or 
+  ifnull(L.templateUsage, -1.0) != ifnull(P.templateUsage, -1.0) or 
+  ifnull(L.displayUtilization, -1.0) != ifnull(P.displayUtilization, -1.0) or 
+  ifnull(L.displayIntent, -1.0) != ifnull(P.displayIntent, -1.0) or 
+  ifnull(L.hubspotId, '') != ifnull(P.hubspotId, '')

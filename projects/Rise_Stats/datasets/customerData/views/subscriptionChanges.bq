@@ -1,0 +1,56 @@
+#standardSQL
+with
+
+latestData as
+(
+select
+  companyId, 
+  subscriptionId, 
+  name, 
+  status, 
+  startDate, 
+  renewalDate, 
+  cancellationDate, 
+  cancellationReason,
+  amount
+from `rise-core-log.customerData.subscription`
+where collectionDate = (select max(collectionDate) from `rise-core-log.customerData.subscription`)
+),
+
+previousData as
+(
+select
+  companyId, 
+  subscriptionId, 
+  name, 
+  status, 
+  startDate, 
+  renewalDate, 
+  cancellationDate, 
+  cancellationReason,
+  amount
+from `rise-core-log.customerData.subscription`
+where collectionDate = (select max(collectionDate) from (select collectionDate from `rise-core-log.customerData.subscription` where collectionDate < (select max(collectionDate) from `rise-core-log.customerData.subscription`)))
+)
+
+select 
+  L.companyId, 
+  L.subscriptionId, 
+  L.name, 
+  L.status, 
+  L.startDate, 
+  L.renewalDate, 
+  L.cancellationDate, 
+  L.cancellationReason,
+  L.amount
+from latestData L
+left outer join previousData P on
+  L.companyId = P.companyId and L.subscriptionId = P.subscriptionId
+where  
+  ifnull(L.name, '') != ifnull(P.name, '') or 
+  ifnull(L.status, '') != ifnull(P.status, '') or 
+  ifnull(L.startDate, timestamp('1900-01-01')) != ifnull(P.startDate, timestamp('1900-01-01')) or 
+  ifnull(L.renewalDate, timestamp('1900-01-01')) != ifnull(P.renewalDate, timestamp('1900-01-01')) or 
+  ifnull(L.cancellationDate, timestamp('1900-01-01')) != ifnull(P.cancellationDate, timestamp('1900-01-01')) or 
+  ifnull(L.cancellationReason, '') != ifnull(P.cancellationReason, '') or 
+  ifnull(L.amount, -1.0) != ifnull(P.amount, -1.0)

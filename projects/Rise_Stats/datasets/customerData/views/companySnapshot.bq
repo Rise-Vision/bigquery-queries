@@ -7,7 +7,7 @@ select
   C.companyId,
   C.name,
   C.parentId,
-  C.marketSegments as industry,
+  C.companyIndustry as industry,
   C.street, 
   C.unit,
   C.city,

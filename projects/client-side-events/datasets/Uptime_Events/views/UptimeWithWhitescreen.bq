@@ -5,7 +5,7 @@ SELECT
 FROM
  `client-side-events.Module_Events.watchdog_events`
 WHERE
-  _PARTITIONTIME >= timestamp(date_sub(current_date(), INTERVAL 4 DAY))
+  _PARTITIONTIME >= timestamp(date_sub(current_date(), INTERVAL 7 DAY))
   AND _PARTITIONTIME < timestamp(current_date())
   AND event = "white screen detected"
 GROUP BY
@@ -26,7 +26,7 @@ FROM (
       ELSE 0
     END rendererRunningAndMSConnected
   FROM
-    `client-side-events.Uptime_Events.EventsPastFourDays`
+    `client-side-events.Uptime_Events.EventsPastSevenDays`
   WHERE
     DATE(ts) < CURRENT_DATE()
     AND scheduled = TRUE)

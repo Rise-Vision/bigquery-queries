@@ -25,7 +25,10 @@ errorsCurrentVersion AS (
   FROM
     recentEventsCurrentVersion
   WHERE
-    UPPER(event) LIKE "%ERROR%" and event != 'network check error' and event != 'showing network error')
+    UPPER(event) LIKE "%ERROR%"
+    and event != 'network check error'
+    and event != 'showing network error'
+    and (event != 'marketwall - send display id error' and event_details not like '%net::ERR_SOCKET_NOT_CONNECTED%'))
     
 SELECT
   total.date,

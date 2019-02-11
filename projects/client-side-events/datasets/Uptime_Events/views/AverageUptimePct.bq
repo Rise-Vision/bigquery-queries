@@ -11,4 +11,4 @@ select date, greatest(0, rendererRunningAndMSConnected - fiveMinuteIntervalsWith
     FROM
     `client-side-events.Uptime_Events.UptimeWithWhitescreen`))
 
-select date, avg(uptime_pct) average_uptime_pct from displayUptimes group by date
+select date, avg(uptime_pct) average_uptime_pct from displayUptimes group by date order by date desc

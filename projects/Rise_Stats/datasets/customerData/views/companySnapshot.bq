@@ -241,7 +241,7 @@ select
   D.companyId,
   avg(U.day_uptime_pct) as uptime
 from productionDisplays D
-inner join (select day_uptime_pct, display_id from `client-side-events.Uptime_Events.DisplayUptimePctFourDaysAgoToYesterday` where date = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) U on D.displayId = U.display_id
+inner join (select day_uptime_pct, display_id from `client-side-events.Uptime_Events.DailyUptimePerDisplay` where date = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) U on D.displayId = U.display_id
 group by 1
 ), 
 

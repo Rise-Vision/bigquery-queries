@@ -1,14 +1,3 @@
 #standardSQL
-with displayUptimes as (
-select date, greatest(0, rendererRunningAndMSConnected - fiveMinuteIntervalsWithWhitescreen) / scheduledFiveMinIntervals * 100 uptime_pct
-  from (
-    SELECT
-    date,
-    display_id,
-    rendererRunningAndMSConnected,
-    scheduledFiveMinIntervals,
-    ifnull(fiveMinuteIntervalsWithWhitescreen, 0) fiveMinuteIntervalsWithWhitescreen
-    FROM
-    `client-side-events.Uptime_Events.UptimeWithWhitescreen`))
-
-select date, avg(uptime_pct) average_uptime_pct from displayUptimes group by date order by date desc
+select date, avg(day_uptime_pct) average_uptime_pct from `client-side-events.Uptime_Events.DailyUptimePerDisplay`
+group by date order by date desc

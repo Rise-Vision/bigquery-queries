@@ -1,0 +1,27 @@
+#standardSQL
+with
+averageUptime as
+(
+select
+   avg(average_uptime_pct) as uptime
+from `client-side-events.Uptime_Events.AverageUptimePct`
+),
+
+
+newProductionCompanies as
+(
+select 
+  count(distinct C.companyId) as newSignups
+from `rise-core-log.coreData.companies` C
+inner join (select max(id) as id, companyId from `rise-core-log.coreData.companies` group by companyId) CC on C.id=CC.id
+where C.appId = 's~rvaserver2' and C.isTest = false and C.creationDate >= timestamp(DATE_SUB(current_date(), INTERVAL 7 DAY)) and DATE(C.creationDate) < CURRENT_DATE()
+),
+
+contentUpdates as 
+(
+select sum(total_updates) as updateCount from `client-side-events.Module_Events.content_update_frequency` 
+where date >= DATE_SUB(current_date(), INTERVAL 7 DAY) and date < CURRENT_DATE()
+
+)
+
+SELECT uptime, newSignups, updateCount FROM averageUptime, newProductionCompanies, contentUpdates

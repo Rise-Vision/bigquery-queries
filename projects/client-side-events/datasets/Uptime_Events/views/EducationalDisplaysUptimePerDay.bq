@@ -1,0 +1,29 @@
+#standardSQL
+
+with primaryEducationCompanies as (
+select C.companyId from `rise-core-log.coreData.companies` C
+inner join (select max(id) as id, companyId from `rise-core-log.coreData.companies` group by companyId) CC on C.id = CC.id
+where C.appId = 's~rvaserver2' and C.isTest = false and C.companyIndustry like 'PRIMARY_SECONDARY_EDUCATION'
+),
+
+primaryEducationDisplays as (
+select D.displayId from `rise-core-log.coreData.displays` D
+inner join (select max(id) as id, displayId from `rise-core-log.coreData.displays` group by displayId) DD on D.id = DD.id
+where companyId in (select companyId from `primaryEducationCompanies`)
+),
+
+uptime as (
+select date, display_id, day_uptime_pct from `client-side-events.Uptime_Events.DailyUptimePerDisplay` where display_id in (select displayId from `primaryEducationDisplays`) and day_uptime_pct < 99.0 group by date, display_id, day_uptime_pct order by date desc, day_uptime_pct asc
+)
+
+select 
+  displays.*,
+  config.os_description,
+  config.player_name,
+  config.installer_version,
+  config.player_version
+from `uptime` displays
+left join
+`client-side-events.Player_Data.ConfigurationLatestStandardSQL` config
+ON
+  config.display_id = displays.display_id

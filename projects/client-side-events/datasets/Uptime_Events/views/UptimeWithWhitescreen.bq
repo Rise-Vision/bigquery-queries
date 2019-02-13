@@ -16,6 +16,8 @@ SELECT
   date,
   display_id,
   SUM(rendererRunningAndMSConnected) rendererRunningAndMSConnected,
+  SUM(showingContent) showingContent,
+  SUM(connectedToMS) connectedToMS,
   COUNT(display_id) scheduledFiveMinIntervals
 FROM (
   SELECT
@@ -24,7 +26,9 @@ FROM (
     CASE
       WHEN showing = TRUE AND connected = TRUE THEN 1
       ELSE 0
-    END rendererRunningAndMSConnected
+    END rendererRunningAndMSConnected,
+    CAST(showing AS INT64) showingContent,
+    CAST(connected AS INT64) connectedToMS
   FROM
     `client-side-events.Uptime_Events.EventsPastSevenDays`
   WHERE
@@ -33,12 +37,14 @@ FROM (
 GROUP BY
   date,
   display_id)
-
+  
 select
 uptime.date,
 uptime.display_id,
 rendererRunningAndMSConnected,
 scheduledFiveMinIntervals,
-fiveMinuteIntervalsWithWhitescreen
+fiveMinuteIntervalsWithWhitescreen,
+showingContent,
+connectedToMS
 from uptime left join whitescreen
 on whitescreen.date = uptime.date and whitescreen.display_id = uptime.display_id

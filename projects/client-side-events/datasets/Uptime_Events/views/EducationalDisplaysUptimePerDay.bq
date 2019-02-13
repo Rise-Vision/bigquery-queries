@@ -13,7 +13,7 @@ where companyId in (select companyId from `primaryEducationCompanies`)
 ),
 
 uptime as (
-select date, display_id, day_uptime_pct from `client-side-events.Uptime_Events.DailyUptimePerDisplay` where display_id in (select displayId from `primaryEducationDisplays`) and day_uptime_pct < 99.0 group by date, display_id, day_uptime_pct order by date desc, day_uptime_pct asc
+select date, display_id, day_uptime_pct, showing_content_pct, connected_to_ms_pct, white_screen_pct from `client-side-events.Uptime_Events.DailyUptimePerDisplay` where display_id in (select displayId from `primaryEducationDisplays`) and day_uptime_pct < 99.0 group by date, display_id, day_uptime_pct, showing_content_pct, connected_to_ms_pct, white_screen_pct order by date desc, day_uptime_pct asc
 )
 
 select 

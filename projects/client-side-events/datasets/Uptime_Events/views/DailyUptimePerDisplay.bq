@@ -1,10 +1,18 @@
-select date, greatest(0, rendererRunningAndMSConnected - fiveMinuteIntervalsWithWhitescreen) / scheduledFiveMinIntervals * 100 day_uptime_pct, display_id
+select
+date,
+greatest(0, rendererRunningAndMSConnected - fiveMinuteIntervalsWithWhitescreen) / scheduledFiveMinIntervals * 100 day_uptime_pct,
+showingContent / scheduledFiveMinIntervals * 100 showing_content_pct,
+connectedToMS / scheduledFiveMinIntervals * 100 connected_to_ms_pct,
+fiveMinuteIntervalsWithWhitescreen / scheduledFiveMinIntervals * 100 white_screen_pct,
+display_id
   from (
     SELECT
     date,
     display_id,
     rendererRunningAndMSConnected,
     scheduledFiveMinIntervals,
-    ifnull(fiveMinuteIntervalsWithWhitescreen, 0) fiveMinuteIntervalsWithWhitescreen
+    ifnull(fiveMinuteIntervalsWithWhitescreen, 0) fiveMinuteIntervalsWithWhitescreen,
+    showingContent,
+    connectedToMS
     FROM
     `client-side-events.Uptime_Events.UptimeWithWhitescreen`)

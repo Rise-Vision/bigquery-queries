@@ -1,0 +1,52 @@
+#standardSQL
+
+with companies as (
+select C.companyId, C.companyIndustry from `rise-core-log.coreData.companies` C
+inner join (select max(id) as id, companyId from `rise-core-log.coreData.companies` group by companyId) CC on C.id = CC.id
+where C.appId = 's~rvaserver2' and C.isTest = false
+),
+
+displays as (
+select D.displayId as displayId, C.companyIndustry as companyIndustry 
+from `rise-core-log.coreData.displays` D
+inner join (select max(id) as id, displayId from `rise-core-log.coreData.displays` group by displayId) DD on D.id = DD.id
+left join `companies` C
+on D.companyId = C.companyId
+),
+
+uptime as (
+select date, display_id, day_uptime_pct, showing_content_pct, connected_to_ms_pct, white_screen_pct, core.companyIndustry as industry
+from `client-side-events.Uptime_Events.DailyUptimePerDisplay` 
+left join
+`displays` core
+on 
+core.displayId = display_id
+where day_uptime_pct < 99.0 
+group by date, core.companyIndustry, display_id, day_uptime_pct, showing_content_pct, connected_to_ms_pct, white_screen_pct order by date desc, day_uptime_pct asc
+),
+
+displaysUptimePerDay as (
+select 
+  uptime.*,
+  config.os_description,
+  config.player_name,
+  config.installer_version,
+  config.player_version
+from `uptime` uptime
+left join
+`client-side-events.Player_Data.ConfigurationLatestStandardSQL` config
+ON
+  config.display_id = uptime.display_id
+)
+
+SELECT display_id, day_uptime_pct, showing_content_pct, connected_to_ms_pct, white_screen_pct, os_description, player_name, installer_version, player_version, industry 
+FROM `displaysUptimePerDay` 
+WHERE date = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
+and industry = 'PRIMARY_SECONDARY_EDUCATION'
+
+union all
+
+SELECT display_id, day_uptime_pct, showing_content_pct, connected_to_ms_pct, white_screen_pct, os_description, player_name, installer_version, player_version, industry 
+FROM `displaysUptimePerDay` 
+WHERE date = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
+and industry != 'PRIMARY_SECONDARY_EDUCATION'

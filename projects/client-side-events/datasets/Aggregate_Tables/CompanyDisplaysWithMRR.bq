@@ -1,0 +1,34 @@
+#standardSQL
+
+with companiesMRR as (
+select sum(MRRamount) as mrr, companyId 
+from `rise-core-log.businessDashboard.totalMRR` 
+where status = 'Active' and month = extract(month from current_date()) 
+group by companyId
+),
+
+companiesWithMRR as (
+select C.companyId, C.name as companyName, C.companyIndustry, ifnull(M.mrr, 0) as companyMRR
+from `rise-core-log.coreData.companies` C
+inner join (select max(id) as id, companyId from `rise-core-log.coreData.companies` group by companyId) CC on C.id = CC.id
+left join `companiesMRR` M on M.companyId = C.companyId
+where C.appId = 's~rvaserver2' and C.isTest = false
+),
+
+companiesDisplays as (
+select C.companyName, C.companyId, C.companyIndustry, D.displayId as displayId, C.companyMRR, config.os_description as os, config.licensed
+from `rise-core-log.coreData.displays` D
+inner join (select max(id) as id, displayId from `rise-core-log.coreData.displays` group by displayId) DD on D.id = DD.id
+left join `companiesWithMRR` C
+on D.companyId = C.companyId
+left join`client-side-events.Player_Data.ConfigurationLatestStandardSQL` config
+on config.display_id = D.displayId
+where config.player_version != ''
+group by C.companyName, C.companyId, C.companyIndustry, D.displayId, C.companyMRR, config.os_description, config.licensed
+)
+
+select D.*, max(E.ts) as lastActiveDate 
+from `companiesDisplays` D 
+left join `client-side-events.Uptime_Events.events` E on E.display_id = D.displayId 
+where E.connected = true 
+group by D.companyName, D.companyId, D.companyIndustry, D.displayId, D.companyMRR, D.os, D.licensed

@@ -1,0 +1,5 @@
+#standardSQL
+#scheduled daily write to K12RecommendedPlayerPctHistory table
+
+select @run_time ts, total_k12_displays, recommended_k12_displays, pct from
+`client-side-events.Player_Data.K12RecommendedPlayerPct`

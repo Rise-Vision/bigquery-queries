@@ -1,0 +1,9 @@
+#StandardSQL
+
+SELECT
+  date,
+  numberOfK12Companies,
+  numberOfK12CompaniesUsingTemplates,
+  numberOfK12CompaniesUsingTemplates / numberOfK12Companies AS usage
+FROM `client-side-events.Widget_Events.K12CompaniesUsingTemplatesStats`
+ORDER BY date DESC

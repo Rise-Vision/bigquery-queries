@@ -23,13 +23,45 @@ k12Displays AS
   SELECT displayId
   FROM `rise-core-log.coreData.displays`
   WHERE companyId IN ( SELECT companyId FROM k12Companies )
+),
+
+electronActiveDisplays AS
+(
+  SELECT display_id AS displayId
+  FROM `client-side-events.Installer_Events.events*`
+  WHERE _TABLE_SUFFIX BETWEEN
+    FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -8 DAY))
+  AND
+    FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+),
+
+chromeOsActiveDisplays AS
+(
+  SELECT id AS displayId
+  FROM `client-side-events.ChromeOS_Player_Events.events`
+  WHERE ts BETWEEN
+    TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -8 DAY))
+  AND
+    TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
+),
+
+k12ActiveDisplays AS
+(
+  SELECT displayId
+  FROM k12Displays
+  WHERE displayId IN
+  (
+    SELECT displayID FROM electronActiveDisplays
+    UNION ALL
+    SELECT displayID FROM chromeOsActiveDisplays
+  )
 )
 
 SELECT * FROM
 (
   SELECT
     date,
-    ( SELECT COUNT(*) FROM k12Displays ) AS numberOfK12Displays,
+    ( SELECT COUNT(DISTINCT displayId) FROM k12ActiveDisplays ) AS numberOfK12Displays,
     numberOfK12DisplaysUsingTemplates
   FROM
   (

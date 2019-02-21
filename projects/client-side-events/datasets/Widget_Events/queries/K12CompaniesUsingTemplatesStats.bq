@@ -22,7 +22,9 @@ SELECT * FROM
 (
   SELECT
     date,
-    ( SELECT COUNT(*) FROM k12Companies ) AS numberOfK12Companies,
+    (
+      SELECT COUNT(DISTINCT companyId) FROM k12Companies
+    ) AS numberOfK12Companies,
     numberOfK12CompaniesUsingTemplates
   FROM
   (

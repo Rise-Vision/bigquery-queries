@@ -1,16 +1,23 @@
 #standardSQL
+with
 
-with K12Companies as (
+K12CompaniesInCore as (
 select C.companyId from `rise-core-log.coreData.companies` C
 inner join (select max(id) as id, companyId from `rise-core-log.coreData.companies` group by companyId) CC on C.id = CC.id
 where C.appId = 's~rvaserver2' and C.isTest = false and C.companyIndustry like 'PRIMARY_SECONDARY_EDUCATION'
 ),
 
-K12Displays as (
+K12DisplaysInCore as (
 select D.displayId from `rise-core-log.coreData.displays` D
 inner join (select max(id) as id, displayId from `rise-core-log.coreData.displays` group by displayId) DD on D.id = DD.id
-where companyId in (select companyId from `K12Companies`)
+where companyId in (select companyId from `K12CompaniesInCore`)
 ),
+
+K12DisplaysRecentlyRunning as (
+select displayId from K12DisplaysInCore where displayId in (
+  select display_id from `client-side-events.Player_Data.RecentlyRunningDisplays`
+)
+group by displayId),
 
 RecommendedPlayerProducts as (
 select "pro752465" as productname
@@ -18,21 +25,22 @@ union all
 select "pro760200" as productname
 ),
 
-RecommendedPlayerDisplays as (
+RecommendedPlayerDisplaysInConfig as (
 select C.display_id from `client-side-events.Player_Data.configuration` C
 inner join (select max(ts) as ts, display_id from `client-side-events.Player_Data.configuration` group by display_id) CC on C.ts = CC.ts
 where C.product_name in (select productname from RecommendedPlayerProducts)
 ),
 
-K12RecommendedPlayerDisplays as (
-select displayId from K12Displays where displayId in (select display_id from RecommendedPlayerDisplays)
-)
+K12RecommendedPlayerDisplaysRecentlyRunning as (
+select displayId from K12DisplaysRecentlyRunning where displayId in (
+  select display_id from RecommendedPlayerDisplaysInConfig
+))
 
 select
-totalK12.displays total_k12_displays,
-recommendedK12.displays recommended_k12_displays,
-(recommendedK12.displays) / totalK12.displays * 100 pct from
-(select count(displayId) displays from K12RecommendedPlayerDisplays) recommendedK12
+totalK12running.displays total_k12_displays,
+recommendedK12running.displays recommended_k12_displays,
+(recommendedK12running.displays) / totalK12running.displays * 100 pct from
+(select count(displayId) displays from K12RecommendedPlayerDisplaysRecentlyRunning) recommendedK12running
 left join
-(select count(displayId) displays from K12Displays) totalK12
+(select count(displayId) displays from K12DisplaysRecentlyRunning) totalK12running
 on true

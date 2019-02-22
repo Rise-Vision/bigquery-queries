@@ -1,0 +1,36 @@
+#standardSQL
+select display_id, date from (
+
+SELECT
+REGEXP_EXTRACT(protoPayload.resource,r'\/v2\/viewer\/display\/([A-Za-z0-9-]+)') display_id,
+date(timestamp) date
+FROM
+`rvaserver2.appengine_logs_v2.appengine_googleapis_com_request_log_*`
+where _table_suffix between
+format_date("%Y%m%d", date_sub(current_date(), interval 5 day)) and
+format_date("%Y%m%d", current_date())
+
+union distinct
+
+SELECT
+display_id,
+date(ts) date
+from
+`client-side-events.Viewer_Events.events*`
+where _table_suffix between
+format_date("%Y%m%d", date_sub(current_date(), interval 5 day)) and
+format_date("%Y%m%d", current_date())
+
+union distinct
+
+SELECT
+display_id,
+date(ts) date
+from
+`client-side-events.Installer_Events.events*`
+where _table_suffix between
+format_date("%Y%m%d", date_sub(current_date(), interval 5 day)) and
+format_date("%Y%m%d", current_date())
+)
+
+group by display_id, date

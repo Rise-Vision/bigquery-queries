@@ -1,0 +1,60 @@
+#StandardSQL
+
+WITH k12Companies AS
+(
+  SELECT c.companyId
+  FROM `rise-core-log.coreData.companies` c
+  INNER JOIN
+  (
+    SELECT MAX(id) AS id, companyId
+    FROM `rise-core-log.coreData.companies`
+    GROUP BY companyId
+  ) cc ON c.id = cc.id
+  WHERE c.appId = 's~rvaserver2' and c.isTest = false
+  AND c.companyIndustry IN (
+    'HIGHER_EDUCATION',
+    'PRIMARY_SECONDARY_EDUCATION',
+    'EDUCATION_MANAGEMENT'
+  )
+)
+
+SELECT * FROM
+(
+  SELECT
+    date,
+    (
+      SELECT COUNT(DISTINCT companyId) FROM k12Companies
+    ) AS numberOfK12Companies,
+    numberOfK12CompaniesUsingTemplates
+  FROM
+  (
+    SELECT
+      COUNT(DISTINCT core.companyId) as numberOfK12CompaniesUsingTemplates,
+      templates.date
+    FROM
+    (
+      SELECT display_id, DATE(ts) AS date
+      FROM `client-side-events.Widget_Events.template_events*`
+      WHERE _TABLE_SUFFIX = FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+      AND event = 'load'
+      AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+      AND template_id NOT IN (
+        '60868bdb-b7cc-44d1-a53e-1cbd5aa70fe9', -- Simple Video Presentation
+        '758113f9-2b45-44a8-9a73-21e09492b92c' -- Simple Image Presentation
+      )
+      GROUP BY display_id, date
+    ) AS templates
+    INNER JOIN `rise-core-log.coreData.displays` AS core
+    ON templates.display_id = core.displayId
+    WHERE core.companyId IN ( SELECT companyId FROM k12Companies )
+    GROUP BY 2
+  )
+
+  UNION ALL
+
+
+  SELECT date, numberOfK12Companies, numberOfK12CompaniesUsingTemplates
+  FROM `client-side-events.Aggregate_Tables.K12CompaniesUsingTemplatesStats`
+  WHERE date < DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)
+)
+ORDER BY date DESC

@@ -9,7 +9,20 @@ WHERE
   AND _PARTITIONTIME < timestamp(current_date())
   AND event = "white screen detected"
 GROUP BY
- date, display_id),
+ date, display_id
+
+UNION ALL
+
+SELECT
+  date(ts) date, id as display_id, count(id) fiveMinuteIntervalsWithWhitescreen
+FROM
+ `client-side-events.ChromeOS_Player_Events.events`
+WHERE
+  ts >= timestamp(date_sub(current_date(), INTERVAL 7 DAY))
+  AND ts < timestamp(current_date())
+  AND event = "white screen detected"
+GROUP BY
+ date, id),
 
 uptime as (
 SELECT

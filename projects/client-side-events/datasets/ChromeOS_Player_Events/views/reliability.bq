@@ -29,6 +29,7 @@ errorsCurrentVersion AS (
     and event != 'network check error'
     and event != 'showing network error'
     and event != 'white screen external URL check error'
+    and event != 'downtime network error'
     and (event != 'marketwall - send display id error' and event_details not like '%net::ERR_SOCKET_NOT_CONNECTED%'))
     
 SELECT

@@ -1,3 +1,10 @@
 #standardSQL
-select date, avg(day_uptime_pct) average_uptime_pct from `client-side-events.Uptime_Events.DailyUptimePerDisplay`
+SELECT
+date(ts) date,
+sum(case when showingContent = 1 and connectedToMS = 1 and whitescreenDetected = 0 then 1 else 0 end) / count(ts) average_uptime_pct,
+sum(showingContent) / count(ts) rendererPct,
+sum(connectedToMS) / count(ts) networkPct,
+1 - (sum(whitescreenDetected) / count(ts)) whitescreenPct
+FROM
+`client-side-events.Uptime_Events.UptimeWithWhitescreenMerged`
 group by date order by date desc

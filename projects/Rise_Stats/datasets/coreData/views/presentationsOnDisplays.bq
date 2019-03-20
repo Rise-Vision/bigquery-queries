@@ -1,0 +1,49 @@
+#standardSQL
+with
+
+productionSchedules as
+(
+select S.* 
+from `rise-core-log.coreData.schedules` S
+inner join (select max(id) as id, scheduleId from `rise-core-log.coreData.schedules` group by scheduleId) SS on S.id = SS.id
+where S.appId = 's~rvaserver2'
+),
+
+productionDisplays as
+(
+select D.* 
+from `rise-core-log.coreData.displays` D
+inner join (select max(id) as id, displayId from `rise-core-log.coreData.displays` group by displayId) DD on D.id = DD.id
+where D.appId = 's~rvaserver2'
+),
+
+scheduledPresentations as
+(
+select 
+  S.scheduleId,
+  S.companyId,
+  CI.objectReference as presentationId,
+  (S.distributeToAll and CI.distributeToAll) as distributeToAll,
+  ARRAY_CONCAT(if(S.distributeToAll, [], S.distribution), if(CI.distributeToAll, [], CI.distribution)) as distribution
+from productionSchedules S,
+unnest(S.contentItems) CI
+where CI.type = 'presentation' and CI.objectReference is not null and CI.objectReference != ''
+order by 1
+)
+
+select 
+  P.presentationId,
+  distributedToDisplays as displayId
+from 
+  scheduledPresentations P,
+  unnest(P.distribution) distributedToDisplays
+where
+  distributeToAll = false and ARRAY_LENGTH(P.distribution) > 0
+union all
+select 
+  P.presentationId,
+  D.displayId as displayId
+from scheduledPresentations P
+inner join productionDisplays D on P.companyId = D.companyId
+where
+  P.distributeToAll = true

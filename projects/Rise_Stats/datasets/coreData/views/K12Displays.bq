@@ -1,0 +1,29 @@
+#standardSQL
+with
+
+productionDisplays as
+(
+select D.* 
+from `rise-core-log.coreData.displays` D
+inner join (select max(id) as id, displayId from `rise-core-log.coreData.displays` group by displayId) DD on D.id = DD.id
+where D.appId = 's~rvaserver2'
+),
+
+productionCompanies as
+(
+select C.* 
+from `rise-core-log.coreData.companies` C
+inner join (select max(id) as id, companyId from `rise-core-log.coreData.companies` group by companyId) CC on C.id = CC.id
+where C.appId = 's~rvaserver2' and C.isTest = false
+),
+
+K12Companies as
+(
+select * 
+from productionCompanies
+where companyIndustry = 'PRIMARY_SECONDARY_EDUCATION' or companyIndustry = 'HIGHER_EDUCATION' or companyIndustry = 'EDUCATION_MANAGEMENT'
+)
+
+select D.*
+from productionDisplays D
+inner join K12Companies C on D.companyId = C.companyId

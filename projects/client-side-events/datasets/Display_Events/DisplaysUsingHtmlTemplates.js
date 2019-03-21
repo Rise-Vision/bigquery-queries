@@ -23,7 +23,7 @@ SELECT * FROM
   UNION ALL
 
   SELECT date, template, display_id, company_id
-  FROM `client-side-events.Aggregate_Tables.DisplaysUsingTemplates`
+  FROM `client-side-events.Aggregate_Tables.DisplaysUsingHtmlTemplates`
   WHERE date < DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)
 )
 ORDER BY date DESC, template

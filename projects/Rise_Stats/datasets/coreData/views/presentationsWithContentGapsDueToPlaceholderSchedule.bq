@@ -1,0 +1,59 @@
+#standardSQL
+with
+
+productionPresentations as
+(
+select P.* 
+from `rise-core-log.coreData.presentations` P
+inner join (select max(id) as id, presentationId from `rise-core-log.coreData.presentations` group by presentationId) PP on P.id=PP.id
+where P.appId = 's~rvaserver2'
+),
+
+placeholders as
+(
+select 
+  P.presentationId,
+  P.changeDate,
+  PL.id as placeholderId,
+  PL.timeDefined as timeDefined,
+  DATE(PL.startDate) as startDate,
+  DATE(PL.endDate) as endDate,
+  TIME(PL.startTime) as startTime,
+  TIME(PL.endTime) as endTime,
+  PL.recurrenceType as recurrenceType,
+  PL.recurrenceFrequency as recurrenceFrequency,
+  PL.recurrenceDaysOfWeek as recurrenceDaysOfWeek,
+  PL.visibility as visibility
+from productionPresentations P,
+unnest(P.presentationData.placeholders) PL
+order by 1
+),
+
+displayablePlaceholders as
+(
+select * 
+from placeholders 
+where
+  (timeDefined = false or timeDefined is null or
+ (timeDefined = true and
+ (startDate is null or CURRENT_DATE() >= startDate) and 
+ (endDate is null or CURRENT_DATE() <= endDate))) and 
+ (visibility = true or visibility is null)
+)
+
+select
+  DP.presentationId
+from displayablePlaceholders DP
+where 
+  not exists(select * 
+              from displayablePlaceholders DP1 
+              where 
+                DP1.presentationId = DP.presentationId and
+                (timeDefined = false or 
+                 timeDefined is null or 
+                 (timeDefined = true and DP1.startTime is null and DP1.endTime is null and 
+                   (DP1.recurrenceType is null or 
+                   (DP1.recurrenceType = 'Daily' and DP1.recurrenceFrequency = 1) or 
+                   (DP1.recurrenceType = 'Weekly' and DP1.recurrenceFrequency = 1 and ARRAY_LENGTH(DP1.recurrenceDaysOfWeek) = 7))))
+             ) 
+group by 1

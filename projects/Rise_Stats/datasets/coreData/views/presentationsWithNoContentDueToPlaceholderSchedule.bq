@@ -1,0 +1,44 @@
+#standardSQL
+with
+
+productionPresentations as
+(
+select P.* 
+from `rise-core-log.coreData.presentations` P
+inner join (select max(id) as id, presentationId from `rise-core-log.coreData.presentations` group by presentationId) PP on P.id=PP.id
+where P.appId = 's~rvaserver2'
+),
+
+placeholders as
+(
+select 
+  P.presentationId,
+  P.changeDate,
+  PL.id as placeholderId,
+  PL.timeDefined as timeDefined,
+  DATE(PL.startDate) as startDate,
+  DATE(PL.endDate) as endDate,
+  TIME(PL.startTime) as startTime,
+  TIME(PL.endTime) as endTime,
+  PL.visibility as visibility
+from productionPresentations P,
+unnest(P.presentationData.placeholders) PL
+order by 1
+)
+
+select
+  P.presentationId
+from placeholders P
+where 
+  not exists(select * 
+              from placeholders P1 
+              where 
+                P1.presentationId = P.presentationId and
+                (P1.visibility = true or P1.visibility is null) and
+                (P1.timeDefined = false or
+                 P1.timeDefined is null or
+                 (P1.timeDefined = true and
+                 (P1.startDate is null or CURRENT_DATE() >= P1.startDate) and 
+                 (P1.endDate is null or CURRENT_DATE() <= P1.endDate))) 
+             )
+group by 1

@@ -1,0 +1,15 @@
+#standardSQL
+with
+
+whiteScreenDueToPlaceholderSchedule as
+(
+select presentationId from `rise-core-log.coreData.presentationsWithContentGapsDueToPlaceholderSchedule`
+union all
+select presentationId from `rise-core-log.coreData.presentationsWithNoContentDueToPlaceholderSchedule`
+)
+
+select 
+ PD.displayId
+from `rise-core-log.coreData.presentationsOnDisplays` PD
+inner join whiteScreenDueToPlaceholderSchedule W on PD.presentationId = W.presentationId
+group by 1

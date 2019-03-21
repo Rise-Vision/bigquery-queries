@@ -1,0 +1,97 @@
+#standardSQL
+with
+
+productionCompanies as
+(
+select C.* 
+from `rise-core-log.coreData.companies` C
+inner join (select max(id) as id, companyId from `rise-core-log.coreData.companies` group by companyId) CC on C.id = CC.id
+where C.appId = 's~rvaserver2' and C.isTest = false
+),
+
+productionPresentations as
+(
+select P.* 
+from `rise-core-log.coreData.presentations` P
+inner join (select max(id) as id, presentationId from `rise-core-log.coreData.presentations` group by presentationId) PP on P.id = PP.id
+where P.appId = 's~rvaserver2'
+),
+
+whitescreens as (
+SELECT
+  ts, display_id
+FROM
+ `client-side-events.Module_Events.watchdog_events`
+WHERE
+  _PARTITIONTIME >= timestamp(date_sub(current_date(), INTERVAL 7 DAY))
+  AND _PARTITIONTIME < timestamp(current_date())
+  AND event = "white screen detected"
+
+UNION ALL
+
+SELECT
+  ts, id as display_id
+FROM
+ `client-side-events.ChromeOS_Player_Events.events`
+WHERE
+  ts >= timestamp(date_sub(current_date(), INTERVAL 7 DAY))
+  AND ts < timestamp(current_date())
+  AND event = "white screen detected"
+),
+
+noContentDueToGapsInWidgetSchedule as (
+select 
+ PD.displayId as display_id
+from `rise-core-log.coreData.presentationsOnDisplays` PD
+inner join `rise-core-log.coreData.presentationsWithContentGapsDueToWidgetSchedule` W on PD.presentationId = W.presentationId
+group by 1
+),
+
+uptimeEventsJoin as (
+  SELECT
+    events.ts,
+    events.display_id,
+    CAST(showing AS INT64) showingContent,
+    CAST(connected AS INT64) connectedToMS,
+    if (whitescreens.display_id is not null, 1, 0) whitescreenDetected,
+    if (widget.display_id is not null, 1, 0) widgetNoContent
+  FROM
+    `client-side-events.Uptime_Events.EventsPastSevenDays` events
+    left join whitescreens
+    on whitescreens.ts <= events.ts
+    and whitescreens.ts > timestamp_sub(events.ts, interval 5 minute)
+    and events.display_id = whitescreens.display_id
+    left join noContentDueToGapsInWidgetSchedule widget on widget.display_id = events.display_id
+  WHERE
+    DATE(events.ts) < CURRENT_DATE() and date(events.ts) >= date_sub(current_date(), interval 7 day)
+    AND scheduled = TRUE
+),
+
+
+downtimeBecauseOfWhiteScreenAndWidgetHasNoContentToShow as(
+select ts, display_id from uptimeEventsJoin where showingContent = 1 and connectedToMS = 1 and whitescreenDetected = 1 and widgetNoContent = 1
+),
+
+downtimeBecauseOfWhiteScreenAndWidgetHasNoContentToShowTop4 as (
+select display_id as displayId, count(ts) as incidentCount from downtimeBecauseOfWhiteScreenAndWidgetHasNoContentToShow 
+group by 1
+)
+
+select 
+  FORMAT_DATE("%e-%b-%Y", CURRENT_DATE()) as date,
+  'Open' as status,
+  C.name as companyName, 
+  C.companyId, 
+  T4.displayId, 
+  P.name as presentationName,
+  'Proactive Support' as request,
+  CONCAT('White screen appeared ', cast(T4.incidentCount AS STRING), ' times in the last 7 days due to gaps in widget schedule. We might want to review their content and recommend changes to the user.') as summary,
+  T4.incidentCount
+from downtimeBecauseOfWhiteScreenAndWidgetHasNoContentToShowTop4 T4 
+inner join `rise-core-log.coreData.K12Displays` D on T4.displayId = D.displayId
+inner join productionCompanies C on D.companyId = C.companyId
+inner join `rise-core-log.coreData.presentationsOnDisplays` PD on T4.displayId = PD.displayId
+inner join `rise-core-log.coreData.presentationsWithContentGapsDueToWidgetSchedule` W on PD.presentationId = W.presentationId
+inner join productionPresentations P on W.presentationId = P.presentationId
+group by 1, 2, 3, 4, 5, 6, 7, 8, 9
+order by 9 desc

@@ -1,0 +1,90 @@
+#standardSQL
+with
+
+productionPresentations as
+(
+select P.* 
+from `rise-core-log.coreData.presentations` P
+inner join (select max(id) as id, presentationId from `rise-core-log.coreData.presentations` group by presentationId) PP on P.id=PP.id
+where P.appId = 's~rvaserver2'
+),
+
+items as
+(
+select 
+  P.presentationId,
+  P.changeDate,
+  PL.id as placeholderId,
+  PI.name as itemName,
+  PL.timeDefined as placeholderTimeDefined,
+  DATE(PL.startDate) as placeholderStartDate,
+  DATE(PL.endDate) as placeholderEndDate,
+  TIME(PL.startTime) as placeholderStartTime,
+  TIME(PL.endTime) as placeholderEndTime,
+  PL.recurrenceType as placeholderRecurrenceType,
+  PL.recurrenceFrequency as placeholderRecurrenceFrequency, 
+  PL.recurrenceAbsolute as placeholderRecurrenceAbsolute, 
+  PL.recurrenceDaysOfWeek as placeholderRecurrenceDaysOfWeek, 
+  PL.recurrenceDayOfWeek as placeholderRecurrenceDayOfWeek, 
+  PL.recurrenceDayOfMonth as placeholderRecurrenceDayOfMonth, 
+  PL.recurrenceWeekOfMonth as placeholderRecurrenceWeekOfMonth, 
+  PL.recurrenceMonthOfYear as placeholderRecurrenceMonthOfYear, 
+  PL.visibility as placeholderVisibility,
+  PI.timeDefined as itemTimeDefined,
+  DATE(PI.startDate) as itemStartDate,
+  DATE(PI.endDate) as itemEndDate,
+  TIME(PI.startTime) as itemStartTime,
+  TIME(PI.endTime) as itemEndTime,
+  PI.recurrenceType as itemRecurrenceType,
+  PI.recurrenceFrequency as itemRecurrenceFrequency, 
+  PI.recurrenceAbsolute as itemRecurrenceAbsolute, 
+  PI.recurrenceDaysOfWeek as itemRecurrenceDaysOfWeek, 
+  PI.recurrenceDayOfWeek as itemRecurrenceDayOfWeek, 
+  PI.recurrenceDayOfMonth as itemRecurrenceDayOfMonth, 
+  PI.recurrenceWeekOfMonth as itemRecurrenceWeekOfMonth, 
+  PI.recurrenceMonthOfYear as itemRecurrenceMonthOfYear
+from productionPresentations P,
+unnest(P.presentationData.placeholders) PL,
+unnest(PL.items) as PI
+order by 1
+),
+
+displayablePlaceholders as
+(
+select * 
+from items 
+where
+  (placeholderTimeDefined = false or placeholderTimeDefined is null or
+ (placeholderTimeDefined = true and
+ (placeholderStartDate is null or CURRENT_DATE() >= placeholderStartDate) and 
+ (placeholderEndDate is null or CURRENT_DATE() <= placeholderEndDate))) and 
+ (placeholderVisibility = true or placeholderVisibility is null)
+),
+
+displayableItems as
+(
+select * 
+from displayablePlaceholders 
+where
+  (itemTimeDefined = false or itemTimeDefined is null or
+ (itemTimeDefined = true and
+ (itemStartDate is null or CURRENT_DATE() >= itemStartDate) and 
+ (itemEndDate is null or CURRENT_DATE() <= itemEndDate))) 
+)
+
+select 
+  DP.presentationId
+from displayableItems DP
+where 
+  not exists(select * 
+              from displayableItems DP1 
+              where 
+                DP1.presentationId = DP.presentationId and
+                (itemTimeDefined = false or 
+                 itemTimeDefined is null or 
+                 (itemTimeDefined = true and DP1.itemStartTime is null and DP1.itemEndTime is null and 
+                   (DP1.itemRecurrenceType is null or 
+                   (DP1.itemRecurrenceType = 'Daily' and DP1.itemRecurrenceFrequency = 1) or 
+                   (DP1.itemRecurrenceType = 'Weekly' and DP1.itemRecurrenceFrequency = 1 and ARRAY_LENGTH(DP1.itemRecurrenceDaysOfWeek) = 7))))
+             ) 
+group by 1

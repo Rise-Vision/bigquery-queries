@@ -1,0 +1,147 @@
+#standardSQL
+
+WITH
+industries as (
+SELECT
+  ids.companyId AS companyId,
+  industries.industry AS industry from(
+  SELECT
+    companyId,
+    MAX(changeDate) AS changeDate
+  FROM
+    `rise-core-log.coreData.companies`
+  GROUP BY
+    companyId) ids
+LEFT JOIN (
+  SELECT
+    MAX(companyIndustry) AS industry,
+    companyId,
+    changeDate
+  FROM
+    `rise-core-log.coreData.companies`
+  GROUP BY
+    changeDate,
+    companyId) industries
+ON
+  industries.companyId = ids.companyId
+  AND industries.changeDate = ids.changeDate
+),
+  whitescreens AS (
+  SELECT
+    ts,
+    display_id
+  FROM
+    `client-side-events.Module_Events.watchdog_events`
+  WHERE
+    _PARTITIONTIME >= TIMESTAMP(DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY))
+    AND _PARTITIONTIME < TIMESTAMP(CURRENT_DATE())
+    AND event = "white screen detected"
+  UNION ALL
+  SELECT
+    ts,
+    id AS display_id
+  FROM
+    `client-side-events.ChromeOS_Player_Events.events`
+  WHERE
+    ts >= TIMESTAMP(DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY))
+    AND ts < TIMESTAMP(CURRENT_DATE())
+    AND event = "white screen detected" ),
+  downtimeNetworkIssue AS (
+  SELECT
+    display_id,
+    ts
+  FROM
+    `client-side-events.Installer_Events.events*`
+  WHERE
+    _table_suffix BETWEEN FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY))
+    AND FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY))
+    AND event = "downtime network error"
+  GROUP BY
+    display_id,
+    ts),
+  downNetworkJoin AS (
+  SELECT
+    events.ts,
+    events.display_id,
+    CAST(showing AS INT64) showingContent,
+    CAST(connected AS INT64) connectedToMS,
+    IF (whitescreens.display_id IS NOT NULL,
+      1,
+      0) whitescreenDetected,
+    IF (down.display_id IS NOT NULL,
+      1,
+      0) downNetworkDetected
+  FROM
+    `client-side-events.Uptime_Events.EventsPastSevenDays` events
+  LEFT JOIN
+    whitescreens
+  ON
+    whitescreens.ts <= events.ts
+    AND whitescreens.ts > TIMESTAMP_SUB(events.ts, INTERVAL 5 minute)
+    AND events.display_id = whitescreens.display_id
+  LEFT JOIN
+    downtimeNetworkIssue down
+  ON
+    down.display_id = events.display_id
+    AND down.ts <= events.ts
+    AND down.ts > TIMESTAMP_SUB(events.ts, INTERVAL 5 minute)
+  WHERE
+    DATE(events.ts) < CURRENT_DATE()
+    AND DATE(events.ts) >= DATE_SUB(CURRENT_DATE(), INTERVAL 2 day)
+    AND scheduled = TRUE ),
+  downtimeBecauseOfMSDisconnection AS(
+  SELECT
+    ts,
+    display_id
+  FROM
+    downNetworkJoin
+  WHERE
+    showingContent = 1
+    AND connectedToMS = 0
+    AND whitescreenDetected = 0 ),
+  downtimeBecauseOfMSDisconnectionWithIssueDetected AS(
+  SELECT
+    ts,
+    display_id
+  FROM
+    downNetworkJoin
+  WHERE
+    showingContent = 1
+    AND connectedToMS = 0
+    AND whitescreenDetected = 0
+    AND downNetworkDetected = 1 )
+    
+    
+SELECT
+  date,
+  ids.display_id display_id,
+  count,
+  companies.company company_id,
+  names.company_name company_name,
+  ind.industry
+FROM (
+  SELECT
+    DATE(ts) date,
+    display_id,
+    COUNT(display_id) count
+  FROM
+    downtimeBecauseOfMSDisconnectionWithIssueDetected
+  GROUP BY
+    date,
+    display_id ) ids
+LEFT JOIN
+  `rise-core-log.coreData.MapDisplayIdCompanyStandardSQL` companies
+ON
+  companies.display_id = ids.display_id
+LEFT JOIN
+  `rise-core-log.coreData.MapDisplayIDsCompanyNamesStandardSQL` names
+ON
+  names.display_id = ids.display_id
+  LEFT JOIN
+ industries ind
+ON
+  ind.companyId = companies.company
+  where industry = "PRIMARY_SECONDARY_EDUCATION"
+ORDER BY
+  date DESC,
+  count DESC

@@ -14,7 +14,6 @@ SELECT * FROM
     WHERE ts >= TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
     AND ts < TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
     AND platform = 'content'
-    AND display_id != 'DISPLAY_ID'
     AND rollout_stage IN( 'beta', 'stable' )
     AND template.product_code IS NOT NULL
     GROUP BY 1, 2, 3

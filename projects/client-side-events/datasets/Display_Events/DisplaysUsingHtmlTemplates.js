@@ -9,13 +9,13 @@ SELECT * FROM
     company_id
   FROM
   (
-    SELECT display_id, company_id, template.product_code AS template
+    SELECT display_id, company_id, template.name AS template
     FROM `client-side-events.Display_Events.events`
     WHERE ts >= TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
     AND ts < TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
     AND platform = 'content'
     AND rollout_stage IN( 'beta', 'stable' )
-    AND template.product_code IS NOT NULL
+    AND template.name IS NOT NULL
     GROUP BY 1, 2, 3
   ) AS total
 

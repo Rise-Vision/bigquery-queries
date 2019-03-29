@@ -16,6 +16,7 @@ SELECT * FROM
     AND platform = 'content'
     AND rollout_stage IN( 'beta', 'stable' )
     AND template.name IS NOT NULL
+    AND template.name != ''
     GROUP BY 1, 2, 3
   ) AS total
 

@@ -1,0 +1,143 @@
+#standardSQL
+
+with displays as (
+  select displayId, companyIndustry, companyMRR, companyName, companyId
+  from `client-side-events.Aggregate_Tables.CompanyDisplaysWithMRR`
+),
+
+widgetLoadFailure as (
+  select distinct display_id, ts from `client-side-events.Viewer_Events.events*` where
+  _table_suffix between FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE(), INTERVAL 3 DAY))
+  and FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE(), INTERVAL 0 DAY))
+  and event like 'Widget Failed to Load%'
+),
+
+lmsConnectionFailure as (
+  select distinct display_id, ts from `client-side-events.Viewer_Events.events*` where
+  _table_suffix between FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE(), INTERVAL 3 DAY))
+  and FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE(), INTERVAL 0 DAY))
+  and event = 'LMS connection closed'
+),
+
+networkCheckFailed as (
+  SELECT
+     distinct display_id, ts
+  FROM
+    `client-side-events.Installer_Events.events*`
+  WHERE
+    _table_suffix BETWEEN FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE(), INTERVAL 3 DAY))
+    AND FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE(), INTERVAL 0 DAY))
+    AND event LIKE "network prereq error"
+
+  UNION ALL 
+
+  select distinct id as display_id, ts FROM
+    `client-side-events.ChromeOS_Player_Events.events`
+  WHERE
+    ts >= timestamp(DATE_SUB(current_date(), INTERVAL 3 DAY))
+    AND event_details like "%https://services.risevision.com/healthz Failed to fetch%"
+),
+
+webviewLoadIssue as (
+  SELECT distinct id as display_id, ts
+  FROM `client-side-events.ChromeOS_Player_Events.events` WHERE
+  ts >= timestamp(date_sub(current_date(), INTERVAL 3 DAY))
+  AND ts < timestamp(current_date())
+  AND event = 'player - viewer webview load aborted' AND event_details LIKE '%"isTopLevel":true%'
+  
+  UNION ALL
+  
+  SELECT distinct display_id, ts
+  FROM `client-side-events.Installer_Events.events*` WHERE _table_suffix BETWEEN FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE(), INTERVAL 3 DAY))
+  AND FORMAT_DATE("%Y%m%d", DATE_SUB(CURRENT_DATE(), INTERVAL 0 DAY))
+  AND event = "error" AND event_details LIKE "%viewer.rise%"
+),
+
+widgetSchedule as (
+  select distinct PD.displayId as display_id
+  from `rise-core-log.coreData.presentationsOnDisplays` PD
+  inner join `rise-core-log.coreData.presentationsWithNoContentDueToWidgetSchedule` W on PD.presentationId = W.presentationId
+),
+
+widgetScheduleGaps as (
+  select distinct PD.displayId as display_id
+  from `rise-core-log.coreData.presentationsOnDisplays` PD
+  inner join `rise-core-log.coreData.presentationsWithContentGapsDueToWidgetSchedule` W on PD.presentationId = W.presentationId
+),
+
+placeholderSchedule as (
+  select distinct PD.displayId as display_id
+  from `rise-core-log.coreData.presentationsOnDisplays` PD
+  inner join `rise-core-log.coreData.presentationsWithNoContentDueToPlaceholderSchedule` W on PD.presentationId = W.presentationId
+),
+
+placeholderScheduleGaps as (
+  select distinct PD.displayId as display_id
+  from `rise-core-log.coreData.presentationsOnDisplays` PD
+  inner join `rise-core-log.coreData.presentationsWithContentGapsDueToPlaceholderSchedule` W on PD.presentationId = W.presentationId
+),
+
+repeatedUptimeOffenders as (  
+  select display_id, day_uptime_pct, showing_content_pct, connected_to_ms_pct, white_screen_pct from
+  (
+    select display_id,
+    min(day_uptime_pct) as day_uptime_pct,
+    min(showing_content_pct) as showing_content_pct, 
+    min(connected_to_ms_pct) as connected_to_ms_pct, 
+    max(white_screen_pct) as white_screen_pct,
+    count(display_id) as times
+    from `client-side-events.Uptime_Events.DailyUptimePerDisplay` uptime
+    where date >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 DAY)
+    and day_uptime_pct < 99
+    group by display_id
+  ) where times = 3
+),
+
+k12Uptime as (
+  select 
+  display_id, 
+  day_uptime_pct, 
+  showing_content_pct, 
+  connected_to_ms_pct, 
+  white_screen_pct, 
+  core.companyIndustry as industry, 
+  core.companyMRR as MRR, 
+  core.companyName as company, 
+  core.companyId as companyId
+  from repeatedUptimeOffenders
+  left join displays core
+  on core.displayId = display_id
+  where core.companyIndustry = 'PRIMARY_SECONDARY_EDUCATION' or core.companyIndustry = 'HIGHER_EDUCATION' or core.companyIndustry = 'EDUCATION_MANAGEMENT'
+  group by core.companyIndustry, core.companyMRR, core.companyName, core.companyId, 
+  display_id, day_uptime_pct, showing_content_pct, connected_to_ms_pct, white_screen_pct
+),
+
+uptimeWithErrorFlags as (
+  select 
+  uptime.*,
+  (select uptime.display_id in (select display_id from widgetLoadFailure)) as widget_failed_to_load,
+  (select uptime.display_id in (select display_id from networkCheckFailed)) as network_check_failed,
+  (select uptime.display_id in (select display_id from webviewLoadIssue)) as webview_load_issue,
+  (select uptime.display_id in (select display_id from widgetSchedule)) as widget_schedule,
+  (select uptime.display_id in (select display_id from widgetScheduleGaps)) as widget_schedule_gaps,
+  (select uptime.display_id in (select display_id from placeholderSchedule)) as placeholder_schedule,
+  (select uptime.display_id in (select display_id from placeholderScheduleGaps)) as placeholder_schedule_gaps,
+  (select uptime.display_id in (select display_id from lmsConnectionFailure)) as lms_connection_error
+  from k12Uptime uptime
+),
+
+displaysUptimeWithConfig as (
+  select 
+    uptime.*,
+    config.os_description,
+    config.player_name,
+    config.installer_version,
+    config.player_version
+  from uptimeWithErrorFlags uptime
+  left join `client-side-events.Player_Data.ConfigurationLatestStandardSQL` config
+  on config.display_id = uptime.display_id
+)
+
+select * from displaysUptimeWithConfig
+where display_id not in (select display_id from `client-side-events.Uptime_Events.ProactiveSupportContactedDisplays`)
+order by day_uptime_pct asc, MRR desc

@@ -62,7 +62,7 @@ SELECT * FROM
       UNION ALL
       SELECT * FROM k12ActiveCompaniesUsingHtmlTemplates
     )
-    GROUP BY 2
+    GROUP BY date
   )
 
   UNION ALL

@@ -28,7 +28,7 @@ k12ActiveDisplaysUsingLegacyTemplates AS
   WHERE _TABLE_SUFFIX = FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
   AND event = 'load'
   AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
-  AND display_id IN ( SELECT displayId FROM k12Displays )
+  AND display_id IN ( SELECT displayId FROM k12ActiveDisplays )
   AND template_id NOT IN (
     '60868bdb-b7cc-44d1-a53e-1cbd5aa70fe9', -- Simple Video Presentation
     '758113f9-2b45-44a8-9a73-21e09492b92c' -- Simple Image Presentation
@@ -40,7 +40,7 @@ k12ActiveDisplaysUsingHtmlTemplates AS
   SELECT display_id, date
   FROM `client-side-events.Aggregate_Tables.DisplaysUsingHtmlTemplates`
   WHERE date = DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)
-  AND display_id IN ( SELECT displayId FROM k12Displays )
+  AND display_id IN ( SELECT displayId FROM k12ActiveDisplays )
 )
 
 SELECT * FROM

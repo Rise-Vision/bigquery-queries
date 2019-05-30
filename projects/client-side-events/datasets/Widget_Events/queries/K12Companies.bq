@@ -1,0 +1,12 @@
+#StandardSQL
+
+SELECT c.companyId
+FROM `rise-core-log.coreData.companies` c
+INNER JOIN
+(
+  SELECT MAX(id) AS id, companyId
+  FROM `rise-core-log.coreData.companies`
+  GROUP BY companyId
+) cc ON c.id = cc.id
+WHERE c.appId = 's~rvaserver2' and c.isTest = false
+AND c.companyIndustry = 'PRIMARY_SECONDARY_EDUCATION'

@@ -1,60 +1,46 @@
 #StandardSQL
 
-WITH k12Companies AS
-(
-  SELECT c.companyId
-  FROM `rise-core-log.coreData.companies` c
-  INNER JOIN
-  (
-    SELECT MAX(id) AS id, companyId
-    FROM `rise-core-log.coreData.companies`
-    GROUP BY companyId
-  ) cc ON c.id = cc.id
-  WHERE c.appId = 's~rvaserver2' and c.isTest = false
-  AND c.companyIndustry IN (
-    'HIGHER_EDUCATION',
-    'PRIMARY_SECONDARY_EDUCATION',
-    'EDUCATION_MANAGEMENT'
-  )
-),
-
-k12Displays AS
+WITH k12Displays AS
 (
   SELECT displayId
   FROM `rise-core-log.coreData.displays`
-  WHERE companyId IN ( SELECT companyId FROM k12Companies )
-),
-
-electronActiveDisplays AS
-(
-  SELECT display_id AS displayId
-  FROM `client-side-events.Installer_Events.events*`
-  WHERE _TABLE_SUFFIX BETWEEN
-    FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -8 DAY))
-  AND
-    FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
-),
-
-chromeOsActiveDisplays AS
-(
-  SELECT id AS displayId
-  FROM `client-side-events.ChromeOS_Player_Events.events`
-  WHERE ts BETWEEN
-    TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -8 DAY))
-  AND
-    TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
+  WHERE companyId IN
+  (
+    SELECT companyId
+    FROM `client-side-events.Widget_Events.K12Companies`
+  )
 ),
 
 k12ActiveDisplays AS
 (
-  SELECT displayId
-  FROM k12Displays
+  SELECT displayId FROM k12Displays
   WHERE displayId IN
   (
-    SELECT displayID FROM electronActiveDisplays
-    UNION ALL
-    SELECT displayID FROM chromeOsActiveDisplays
+    SELECT displayID
+    FROM `client-side-events.Display_Events.ActiveDisplays`
   )
+),
+
+k12ActiveDisplaysUsingLegacyTemplates AS
+(
+  SELECT display_id, DATE(ts) AS date
+  FROM `client-side-events.Widget_Events.template_events*`
+  WHERE _TABLE_SUFFIX = FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+  AND event = 'load'
+  AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+  AND display_id IN ( SELECT displayId FROM k12ActiveDisplays )
+  AND template_id NOT IN (
+    '60868bdb-b7cc-44d1-a53e-1cbd5aa70fe9', -- Simple Video Presentation
+    '758113f9-2b45-44a8-9a73-21e09492b92c' -- Simple Image Presentation
+  )
+),
+
+k12ActiveDisplaysUsingHtmlTemplates AS
+(
+  SELECT display_id, date
+  FROM `client-side-events.Aggregate_Tables.DisplaysUsingHtmlTemplates`
+  WHERE date = DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)
+  AND display_id IN ( SELECT displayId FROM k12ActiveDisplays )
 )
 
 SELECT * FROM
@@ -65,33 +51,14 @@ SELECT * FROM
     numberOfK12DisplaysUsingTemplates
   FROM
   (
-    SELECT COUNT(DISTINCT(display_id)) as numberOfK12DisplaysUsingTemplates, date
-    FROM (
-      SELECT display_id, DATE(ts) AS date
-        FROM `client-side-events.Widget_Events.template_events*`
-        WHERE _TABLE_SUFFIX = FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
-        AND event = 'load'
-        AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
-        AND display_id IN ( SELECT displayId FROM k12Displays )
-        AND template_id NOT IN (
-          '60868bdb-b7cc-44d1-a53e-1cbd5aa70fe9', -- Simple Video Presentation
-          '758113f9-2b45-44a8-9a73-21e09492b92c' -- Simple Image Presentation
-        )
-        GROUP BY display_id, date
-
+    SELECT
+      COUNT(DISTINCT display_id) as numberOfK12DisplaysUsingTemplates,
+      date
+    FROM
+    (
+      SELECT * FROM k12ActiveDisplaysUsingLegacyTemplates
       UNION ALL
-
-      SELECT display_id, DATE(ts) AS date
-        FROM `client-side-events.Display_Events.events*`
-        WHERE ts >= TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
-        AND ts < TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
-        AND platform = 'content'
-        AND rollout_stage IN( 'beta', 'stable' )
-        AND display_id IN ( SELECT displayId FROM k12Displays )
-        AND template.name IS NOT NULL
-        AND template.name != ""
-        AND event = "rise-components-ready"
-        GROUP BY display_id, date
+      SELECT * FROM k12ActiveDisplaysUsingHtmlTemplates
     )
     GROUP BY date
   )

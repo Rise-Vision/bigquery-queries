@@ -1,0 +1,66 @@
+#StandardSQL
+
+WITH recommendedTemplates AS
+(
+  SELECT template
+  FROM `client-side-events.Display_Events.RecommendedTemplates`
+  WHERE DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)
+    BETWEEN start_date AND end_date
+),
+
+k12ActiveCompaniesUsingRecommendedLegacyTemplates AS
+(
+  SELECT core.companyId AS company_id, templates.date
+  FROM
+  (
+    SELECT display_id, DATE(ts) AS date
+    FROM `client-side-events.Widget_Events.template_events*`
+    WHERE _TABLE_SUFFIX = FORMAT_DATE('%E4Y%m%d', DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+    AND event = 'load'
+    AND display_id NOT IN ('preview', '"display_id"', '"displayId"')
+    AND template_id IN ( SELECT template FROM recommendedTemplates )
+    GROUP BY display_id, date
+  ) AS templates
+  INNER JOIN `rise-core-log.coreData.displays` AS core
+  ON templates.display_id = core.displayId
+  WHERE core.companyId IN
+  (
+    SELECT companyId
+    FROM `client-side-events.Widget_Events.K12Companies`
+  )
+),
+
+k12ActiveCompaniesUsingRecommendedHtmlTemplates AS
+(
+  SELECT company_id, DATE(ts)
+  FROM `client-side-events.Display_Events.events`
+  WHERE ts >= TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+  AND ts < TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
+  AND platform = 'content'
+  AND rollout_stage IN( 'beta', 'stable' )
+  AND template.product_code IN ( SELECT template FROM recommendedTemplates )
+  AND company_id IN
+  (
+    SELECT companyId
+    FROM `client-side-events.Widget_Events.K12Companies`
+  )
+)
+
+SELECT * FROM
+(
+  SELECT date, COUNT(DISTINCT company_id) AS number_of_companies FROM
+  (
+    SELECT * FROM k12ActiveCompaniesUsingRecommendedLegacyTemplates
+    UNION ALL
+    SELECT * FROM k12ActiveCompaniesUsingRecommendedHtmlTemplates
+  )
+  WHERE date = DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)
+  GROUP BY date
+
+  UNION ALL
+
+  SELECT date, number_of_companies
+  FROM `client-side-events.Aggregate_Tables.K12CompaniesUsingRecommendedTemplates`
+  WHERE date < DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)
+)
+ORDER BY date DESC

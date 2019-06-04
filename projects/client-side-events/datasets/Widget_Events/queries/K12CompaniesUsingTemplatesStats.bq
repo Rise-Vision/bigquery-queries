@@ -62,6 +62,7 @@ SELECT * FROM
       UNION ALL
       SELECT * FROM k12ActiveCompaniesUsingHtmlTemplates
     )
+    WHERE date = DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)
     GROUP BY date
   )
 

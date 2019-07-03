@@ -16,6 +16,12 @@ SELECT * FROM
     AND ts < TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
     AND platform = 'content'
     AND display_id != 'DISPLAY_ID'
+    AND company_id NOT IN -- test companies
+    (
+      '7fa5ee92-7deb-450b-a8d5-e5ed648c575f',
+      'fee1f642-cdd1-4bc4-8f93-1fc97cb00d55',
+      'a9575a1e-00a8-4d87-b640-979d0623f844'
+    )
     AND rollout_stage IN( 'beta', 'stable' )
     AND level IN ( 'severe', 'error', 'warning' )
   )

@@ -1,0 +1,13 @@
+SELECT
+  date(ts) date,
+  sum(case when responding is true and error is not true then 1 else 0 end) / count(ts) * 100 day_uptime_pct,
+  sum(case when responding is true then 1 else 0 end) / count(ts) * 100 responding_pct,
+  sum(case when error is not true then 1 else 0 end) / count(ts) * 100 no_error_pct,
+  template_product_code
+  FROM
+  `client-side-events.Template_Uptime_Events.events`
+  WHERE ts BETWEEN
+      TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -30 DAY))
+    AND
+      TIMESTAMP(CURRENT_DATE())
+  group by date, template_product_code order by date DESC, template_product_code DESC

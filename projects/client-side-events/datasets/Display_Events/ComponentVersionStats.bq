@@ -18,19 +18,16 @@ WITH component_events AS
   AND source = 'rise-XXXX' -- component name, i.e. rise-image
 )
 
-SELECT * FROM
-(
-  SELECT
-    DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY) as date,
-    total.rollout_stage,
-    total.component,
-    total.version,
-    total.count AS display_count
-  FROM
-    (
-      SELECT rollout_stage, component, version, count(*) AS count FROM
-        ( SELECT * FROM component_events )
-      GROUP BY rollout_stage, component, version
-    ) AS total
-)
-ORDER BY date DESC, rollout_stage DESC, display_count DESC
+SELECT
+  DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY) as date,
+  total.rollout_stage,
+  total.component,
+  total.version,
+  total.count AS display_count
+FROM
+  (
+    SELECT rollout_stage, component, version, count(*) AS count FROM
+      ( SELECT * FROM component_events )
+    GROUP BY rollout_stage, component, version
+  ) AS total
+ORDER BY rollout_stage DESC, display_count DESC

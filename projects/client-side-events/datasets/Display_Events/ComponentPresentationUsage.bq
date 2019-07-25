@@ -18,20 +18,17 @@ SELECT DISTINCT display_id, template.presentation_id as presentation_id, company
   AND source = 'rise-XXXX' -- component name, i.e. rise-image
 )
 
-SELECT * FROM
-(
-  SELECT
-    DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY) as date,
-    total.company_id,
-    total.component,
-    total.template_name,
-    total.presentation_id,
-    total.count AS display_count
-  FROM
-    (
-      SELECT presentation_id, component, company_id, template_name, count(*) AS count FROM
-        ( SELECT * FROM presentations )
-      GROUP BY 1,2,3,4
-    ) AS total
-)
-ORDER BY date DESC, company_id, display_count DESC
+SELECT
+  DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY) as date,
+  total.company_id,
+  total.component,
+  total.template_name,
+  total.presentation_id,
+  total.count AS display_count
+FROM
+  (
+    SELECT presentation_id, component, company_id, template_name, count(*) AS count FROM
+      ( SELECT * FROM presentations )
+    GROUP BY 1,2,3,4
+  ) AS total
+ORDER BY company_id, display_count DESC

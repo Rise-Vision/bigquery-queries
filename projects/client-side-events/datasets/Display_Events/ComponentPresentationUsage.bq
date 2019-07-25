@@ -1,0 +1,37 @@
+#StandardSQL
+
+WITH presentations AS
+(
+SELECT DISTINCT display_id, template.presentation_id as presentation_id, company_id, template.name as template_name, source AS component, version
+  FROM `client-side-events.Display_Events.events`
+  WHERE ts >= TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY))
+  AND ts < TIMESTAMP(DATE_ADD(CURRENT_DATE(), INTERVAL -0 DAY))
+  AND platform = 'content'
+  AND display_id != 'DISPLAY_ID'
+  AND company_id NOT IN -- test companies
+  (
+    '7fa5ee92-7deb-450b-a8d5-e5ed648c575f',
+    'fee1f642-cdd1-4bc4-8f93-1fc97cb00d55',
+    'a9575a1e-00a8-4d87-b640-979d0623f844'
+  )
+  AND rollout_stage = 'stable'
+  AND source = 'rise-XXXX' -- component name, i.e. rise-image
+)
+
+SELECT * FROM
+(
+  SELECT
+    DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY) as date,
+    total.company_id,
+    total.component,
+    total.template_name,
+    total.presentation_id,
+    total.count AS display_count
+  FROM
+    (
+      SELECT presentation_id, component, company_id, template_name, count(*) AS count FROM
+        ( SELECT * FROM presentations )
+      GROUP BY 1,2,3,4
+    ) AS total
+)
+ORDER BY date DESC, company_id, display_count DESC

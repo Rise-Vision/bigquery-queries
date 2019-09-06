@@ -1,22 +1,45 @@
+#standardSQL
+with
+
+productionCompanies as
+(
+select 
+  C.companyId as companyId,
+  C.creationDate as creationDate
+from `rise-core-log.coreData.companies` C
+inner join (select max(id) as id, companyId from `rise-core-log.coreData.companies` group by companyId) CC on C.id = CC.id
+where C.appId = 's~rvaserver2' and C.isTest = false 
+),
+
+deletedEntities as 
+(
+select D.* from `rise-core-log.coreData.deleted` D
+inner join (select max(deletedDate) as deletedDate, id, kind from `rise-core-log.coreData.deleted` group by id, kind) D2 on D.id = D2.id and D.kind = D2.kind and D.deletedDate = D2.deletedDate
+)
+
 select 
   CURRENT_DATE() as collectionDate,
-  companyId,
+  U1.companyId,
   U1.userId,
   firstName,
   lastName,
   roles as role, 
   email as contactEmail,
-  creationDate, 
+  U1.creationDate, 
   UL.lastLogin,
   mailSyncEnabled as subscribedToNewsletter,
   U3.subscriptionDate,
   if(mailSyncEnabled = false, U4.unsubscriptionDate, null) as unsubscriptionDate,
   hubSpotId
 from `rise-core-log.coreData.users` U1
+inner join productionCompanies C on C.companyId = U1.companyId
 inner join (select max(id) as id, userId from `rise-core-log.coreData.users` group by userId) U2 on U1.id = U2.id
 inner join (select max(lastLogin) as lastLogin, id from `rise-core-log.coreData.users` group by id) UL on U2.id = UL.id
 left outer join (select min(changeDate) as subscriptionDate, userId from `rise-core-log.coreData.users` where mailSyncEnabled = true group by userId) U3 on U1.userId = U3.userId
 left outer join (select min(changeDate) as unsubscriptionDate, userId from `rise-core-log.coreData.users` where mailSyncEnabled = false group by userId) U4 on U1.userId = U4.userId
-where appId='s~rvaserver2' and not (U1.userId in (select id from `rise-core-log.coreData.deleted` where kind = 'User'))
-  and not (U1.companyId in (select id from `rise-core-log.coreData.deleted` where kind = 'Company'))
+left outer join (select * from deletedEntities where kind = 'User') UD on U1.userId = UD.id
+left outer join (select * from deletedEntities where kind = 'Company') CD on C.companyId = CD.id
+where U1.appId='s~rvaserver2' and 
+  (UD.deletedDate is null or UD.deletedDate < U1.creationDate) and -- user is not deleted or user is recreated
+  CD.deletedDate is null -- company is not deleted
 group by 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13

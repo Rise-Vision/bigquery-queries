@@ -39,10 +39,14 @@ risePUD AS
 text AS
 (
   SELECT date, Reliability FROM `client-side-events.Display_Events.ComponentReliability` WHERE rollout_stage='stable' AND component='rise-text' limit 7
+),
+timeAndDate AS
+(
+  SELECT date, Reliability FROM `client-side-events.Display_Events.ComponentReliability` WHERE rollout_stage='stable' AND component='rise-time-date' limit 7
 )
 
 
-SELECT date, financial_r, rss_r, weather_r, image_r, slides_r, video_r, counter_r, configuration_r, pud_r, text_r
+SELECT date, financial_r, rss_r, weather_r, image_r, slides_r, video_r, counter_r, configuration_r, pud_r, text_r, timeAndDate_r
 FROM (
   SELECT financial.date as date,
        financial.Reliability as financial_r,
@@ -54,7 +58,8 @@ FROM (
        counter.Reliability as counter_r,
        risePlayerConfiguration.Reliability as configuration_r,
        risePUD.Reliability as pud_r,
-       text.Reliability as text_r
+       text.Reliability as text_r,
+       timeAndDate.Reliability as timeAndDate_r
   FROM financial
   LEFT JOIN rss ON DATE(TIMESTAMP(rss.date)) = financial.date
   LEFT JOIN weather ON DATE(TIMESTAMP(weather.date)) = financial.date
@@ -65,5 +70,6 @@ FROM (
   LEFT JOIN risePlayerConfiguration ON DATE(TIMESTAMP(risePlayerConfiguration.date)) = financial.date
   LEFT JOIN risePUD ON DATE(TIMESTAMP(risePUD.date)) = financial.date
   LEFT JOIN text ON DATE(TIMESTAMP(text.date)) = financial.date
+  LEFT JOIN timeAndDate ON DATE(TIMESTAMP(timeAndDate.date)) = financial.date
 )
 ORDER by date DESC

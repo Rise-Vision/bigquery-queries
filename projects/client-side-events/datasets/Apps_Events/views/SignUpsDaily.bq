@@ -1,0 +1,11 @@
+SELECT 
+  DATE(ts) as date_ts,
+  SUM(CASE WHEN event in ('User Registered','user registration completed') THEN 1 ELSE 0 END) as cnt_user_registered,
+  SUM(CASE WHEN event in ('Company Created','sub-company created') THEN 1 ELSE 0 END) as cnt_company_created,
+  count(event)  total
+  FROM TABLE_DATE_RANGE([Apps_Events.apps_events], DATE_ADD(CURRENT_TIMESTAMP(), -1, 'YEAR'), CURRENT_TIMESTAMP())
+  where event in ('User Registered','user registration completed','Company Created','sub-company created')
+  and host = "apps.risevision.com"
+
+GROUP BY date_ts
+ORDER BY date_ts

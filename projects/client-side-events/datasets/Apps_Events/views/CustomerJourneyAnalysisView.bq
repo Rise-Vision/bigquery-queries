@@ -5,17 +5,17 @@ SELECT
   LAST(rg.companyIndustry) AS industry,
   MIN(rg.creationDate) AS signup_date,
   MIN(CASE
-      WHEN ev.event = 'Presentation Created' or ev.event = 'presentation saved' THEN ev.first_event_ts
+      WHEN ev.event in ('Presentation Created', 'presentation saved') THEN ev.first_event_ts
       ELSE NULL END) AS first_presentation_date,
   MIN(CASE
-      WHEN ev.event = 'Presentation Created' or ev.event = 'presentation saved' THEN DATEDIFF(ev.first_event_ts,rg.creationDate)
+      WHEN ev.event in ('Presentation Created', 'presentation saved') THEN DATEDIFF(ev.first_event_ts,rg.creationDate)
       ELSE NULL END) AS first_presentation_days,
           
-  min(case when ev.event = 'Display Created' or ev.event = 'display created' then ev.first_event_ts else null end) as added_display_date,
-  min(case when ev.event = 'Display Created' or ev.event = 'display created' then DATEDIFF(ev.first_event_ts,rg.creationDate) else null end) as added_display_days,
+  min(case when ev.event in ('Display Created', 'display created') then ev.first_event_ts else null end) as added_display_date,
+  min(case when ev.event in ('Display Created', 'display created') then DATEDIFF(ev.first_event_ts,rg.creationDate) else null end) as added_display_days,
   
-  min(case when ev.event = 'Buy Media Player Clicked' or ev.event = 'buy media player clicked' then ev.first_event_ts else null end) as buy_media_player_date,
-  min(case when ev.event = 'Buy Media Player Clicked' or ev.event = 'buy media player clicked' then DATEDIFF(ev.first_event_ts,rg.creationDate) else null end) as buy_media_player_days,
+  min(case when ev.event in ('Buy Media Player Clicked', 'buy media player clicked') then ev.first_event_ts else null end) as buy_media_player_date,
+  min(case when ev.event in ('Buy Media Player Clicked', 'buy media player clicked') then DATEDIFF(ev.first_event_ts,rg.creationDate) else null end) as buy_media_player_days,
      
   min(actv.activation_time) as first_display_activated_date,
   min(DATEDIFF(actv.activation_time,rg.creationDate)) as first_display_activated_days,

@@ -1,0 +1,77 @@
+#legacySQL
+SELECT
+  rg.companyId AS companyId,
+  LAST(rg.parentId) AS parentId,
+  LAST(rg.companyIndustry) AS industry,
+  MIN(rg.creationDate) AS signup_date,
+  MIN(CASE
+      WHEN ev.event in ('Presentation Created', 'presentation saved') THEN ev.first_event_ts
+      ELSE NULL END) AS first_presentation_date,
+  MIN(CASE
+      WHEN ev.event in ('Presentation Created', 'presentation saved') THEN DATEDIFF(ev.first_event_ts,rg.creationDate)
+      ELSE NULL END) AS first_presentation_days,
+          
+  min(case when ev.event in ('Display Created', 'display created') then ev.first_event_ts else null end) as added_display_date,
+  min(case when ev.event in ('Display Created', 'display created') then DATEDIFF(ev.first_event_ts,rg.creationDate) else null end) as added_display_days,
+  
+  min(case when ev.event in ('Buy Media Player Clicked', 'buy media player clicked') then ev.first_event_ts else null end) as buy_media_player_date,
+  min(case when ev.event in ('Buy Media Player Clicked', 'buy media player clicked') then DATEDIFF(ev.first_event_ts,rg.creationDate) else null end) as buy_media_player_days,
+     
+  min(actv.activation_time) as first_display_activated_date,
+  min(DATEDIFF(actv.activation_time,rg.creationDate)) as first_display_activated_days,
+     
+  min(case when ev.event = 'Active Subscription' then ev.first_event_ts else null end) as subscribed_date,
+  min(case when ev.event = 'Active Subscription' then DATEDIFF(ev.first_event_ts,rg.creationDate) else null end) as subscribed_days,
+FROM (
+  SELECT
+    b.companyId AS companyId,
+    b.creationDate AS creationDate,
+    b.companyIndustry AS companyIndustry,
+    b.parentId as parentId
+  FROM (
+    SELECT
+      MAX(id) id,
+      companyId
+    FROM
+      [rise-core-log.coreData.companies]
+    WHERE
+      appId = 's~rvaserver2'
+      AND isTest = FALSE
+      AND creationDate > '2018-06-01 00:00:00 UTC'
+    GROUP BY
+      companyId ) a
+  INNER JOIN (
+    SELECT
+      *
+    FROM
+      [rise-core-log.coreData.companies] ) b
+  ON
+    b.id = a.id ) rg
+LEFT JOIN (
+  SELECT
+    MIN(ts) AS first_event_ts,
+    MAX(ts) AS last_event_ts,
+    company_id,
+    event
+  FROM
+    TABLE_DATE_RANGE([Apps_Events.apps_events],
+      TIMESTAMP('2018-06-01 00:00:00 UTC'),
+      CURRENT_TIMESTAMP())
+  WHERE
+    event in ('User Registered',
+    'Company Created',
+    'Presentation Created', 'presentation saved',
+    'Display Created', 'display created',
+    'Buy Media Player Clicked', 'buy media player clicked',
+    'Active Subscription')
+  GROUP BY
+    event,
+    company_id ) AS ev
+ON
+  ev.company_id = rg.companyId
+LEFT JOIN
+  [rise-core-log:coreData.MapDisplayIdCompanyActivationTime] AS actv
+ON
+  actv.company = rg.companyId
+GROUP BY
+  1

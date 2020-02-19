@@ -1,0 +1,38 @@
+SELECT 
+
+  DATE(rg.creationDate) as ts_registered,
+
+  COUNT(DISTINCT(rg.companyId)) AS cnt_registered,
+  COUNT(DISTINCT(CASE WHEN ev.event in ('Presentation Created','presentation saved') THEN ev.company_id ELSE null END) ) AS cnt_presentation_created,
+  COUNT(DISTINCT(CASE WHEN ev.event in ('Player Download','player download') THEN ev.company_id ELSE null END) ) AS cnt_player_download,
+  COUNT(DISTINCT(actv.company) ) AS cnt_display_activated,
+  COUNT(DISTINCT(CASE WHEN ev.event = 'Trial Subscription' THEN ev.company_id ELSE null END) ) AS cnt_trial_started,
+  COUNT(DISTINCT(CASE WHEN ev.event in ('Schedule Created','schedule saved') THEN ev.company_id ELSE null END) ) AS cnt_schedule_created,
+  COUNT(DISTINCT(CASE WHEN ev.event in ('Display Created','display created') THEN ev.company_id ELSE null END) ) AS cnt_display_created,
+  COUNT(DISTINCT(CASE WHEN ev.event = 'Active Subscription' THEN ev.company_id ELSE null END) ) AS cnt_subscribed
+
+FROM [rise-core-log:coreData.companies] rg
+LEFT JOIN 
+    (SELECT min(ts) as first_event_ts, company_id, event 
+      FROM [Apps_Events.AppsEventsLast2Months]
+        WHERE event in ('Presentation Created', 'presentation saved',
+          'Trial Subscription',
+          'Active Subscription',
+          'Player Download', 'player download',
+          'Schedule Created', 'schedule saved',
+          'Display Created','display created')
+        group by event,company_id
+        ) 
+     as ev
+  ON ev.company_id = rg.companyId   
+  
+LEFT JOIN
+ [rise-core-log:coreData.MapDisplayIdCompanyActivationTime] as actv
+ on actv.company = rg.companyId
+  
+WHERE 
+  appId = 's~rvaserver2' and isTest = false 
+    and creationDate > DATE_ADD(DATE(CURRENT_TIMESTAMP()), -2, 'MONTH')
+  
+GROUP BY ts_registered
+order by ts_registered

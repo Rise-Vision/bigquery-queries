@@ -1,0 +1,15 @@
+#legacySQL
+SELECT 
+  DATE(TIMESTAMP(time_micros)) as date, 
+  sum(sc_bytes) as bandwidth, 
+  count(*) as requests
+
+FROM TABLE_DATE_RANGE([avid-life-623:RiseStorageLogs_v2.UsageLogs], 
+  TIMESTAMP(DATE_ADD(CURRENT_TIMESTAMP(), -7, 'DAY')),
+  TIMESTAMP(NOW())
+)
+  
+where time_micros > DATE_ADD(CURRENT_TIMESTAMP(), -7, 'DAY')
+and cs_referer contains 'type=sharedschedule'
+group by date
+order by date

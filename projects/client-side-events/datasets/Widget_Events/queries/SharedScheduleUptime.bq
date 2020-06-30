@@ -1,0 +1,471 @@
+#standardSQL
+with
+
+CalendarInstances as
+(
+ select unique_id from `client-side-events.Widget_Events.calendar_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null
+ group by 1
+),
+
+CalendarErrors as
+(
+ select unique_id from `client-side-events.Widget_Events.calendar_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null and event = "error"
+ group by 1
+),
+
+ComponentDataInstances as
+(
+ select unique_id from `client-side-events.Widget_Events.component_data_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null
+ group by 1
+),
+
+ComponentDataErrors as
+(
+ select unique_id from `client-side-events.Widget_Events.component_data_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null and event = "error"
+ group by 1
+),
+
+ComponentFinancialInstances as
+(
+ select unique_id from `client-side-events.Widget_Events.component_financial_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null
+ group by 1
+),
+
+ComponentFinancialErrors as
+(
+ select unique_id from `client-side-events.Widget_Events.component_financial_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null and event = "error"
+ group by 1
+),
+
+ComponentRSSInstances as
+(
+ select unique_id from `client-side-events.Widget_Events.component_rss_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null
+ group by 1
+),
+
+ComponentRSSErrors as
+(
+ select unique_id from `client-side-events.Widget_Events.component_rss_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null and event = "error"
+ group by 1
+),
+
+ComponentSheetInstances as
+(
+ select unique_id from `client-side-events.Widget_Events.component_sheet_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null
+ group by 1
+),
+
+ComponentSheetErrors as
+(
+ select unique_id from `client-side-events.Widget_Events.component_sheet_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null and event = "error"
+ group by 1
+),
+
+ComponentStorageInstances as
+(
+ select unique_id from `client-side-events.Widget_Events.component_storage_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null
+ group by 1
+),
+
+ComponentStorageErrors as
+(
+ select unique_id from `client-side-events.Widget_Events.component_storage_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null and event = "error"
+ group by 1
+),
+
+HTMLInstances as
+(
+ select unique_id from `client-side-events.Widget_Events.html_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null
+ group by 1
+),
+
+HTMLErrors as
+(
+ select unique_id from `client-side-events.Widget_Events.html_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null and event = "error"
+ group by 1
+),
+
+ImageInstances as
+(
+ select unique_id from `client-side-events.Widget_Events.image_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null
+ group by 1
+),
+
+ImageErrors as
+(
+ select unique_id from `client-side-events.Widget_Events.image_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null and event = "error"
+ group by 1
+),
+
+RSSInstances as
+(
+ select unique_id from `client-side-events.Widget_Events.rss_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null
+ group by 1
+),
+
+RSSErrors as
+(
+ select unique_id from `client-side-events.Widget_Events.rss_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null and event = "error"
+ group by 1
+),
+
+SpreadsheetInstances as
+(
+ select unique_id from `client-side-events.Widget_Events.spreadsheet_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null
+ group by 1
+),
+
+SpreadsheetErrors as
+(
+ select unique_id from `client-side-events.Widget_Events.spreadsheet_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null and event = "error"
+ group by 1
+),
+
+TextInstances as
+(
+ select unique_id from `client-side-events.Widget_Events.text_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null
+ group by 1
+),
+
+TextErrors as
+(
+ select unique_id from `client-side-events.Widget_Events.text_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null and event = "error"
+ group by 1
+),
+
+TimeDateInstances as
+(
+ select unique_id from `client-side-events.Widget_Events.time_date_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null
+ group by 1
+),
+
+TimeDateErrors as
+(
+ select unique_id from `client-side-events.Widget_Events.time_date_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null and event = "error"
+ group by 1
+),
+
+VideoInstances as
+(
+ select unique_id from `client-side-events.Widget_Events.video_v2_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null
+ group by 1
+),
+
+VideoErrors as
+(
+ select unique_id from `client-side-events.Widget_Events.video_v2_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null and event = "error"
+ group by 1
+),
+
+WebPageInstances as
+(
+ select unique_id from `client-side-events.Widget_Events.webpage_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null
+ group by 1
+),
+
+WebPageErrors as
+(
+ select unique_id from `client-side-events.Widget_Events.webpage_events*`
+ where _TABLE_SUFFIX BETWEEN FORMAT_DATE("%Y%m%d", DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)) AND FORMAT_DATE("%Y%m%d", CURRENT_DATE()) and presentation_type = 'sharedschedule' and unique_id is not null and event = "error"
+ group by 1
+),
+
+CombinedInstances as
+(
+select * from CalendarInstances
+union distinct
+select * from ComponentDataInstances
+union distinct
+select * from ComponentFinancialInstances
+union distinct
+select * from ComponentRSSInstances
+union distinct
+select * from ComponentSheetInstances
+union distinct
+select * from ComponentStorageInstances
+union distinct
+select * from HTMLInstances
+union distinct
+select * from ImageInstances
+union distinct
+select * from RSSInstances
+union distinct
+select * from SpreadsheetInstances
+union distinct
+select * from TextInstances
+union distinct
+select * from TimeDateInstances
+union distinct
+select * from VideoInstances
+union distinct
+select * from WebPageInstances
+),
+
+CombinedErrors as
+(
+select * from CalendarErrors
+union distinct
+select * from ComponentDataErrors
+union distinct
+select * from ComponentFinancialErrors
+union distinct
+select * from ComponentRSSErrors
+union distinct
+select * from ComponentSheetErrors
+union distinct
+select * from ComponentStorageErrors
+union distinct
+select * from HTMLErrors
+union distinct
+select * from ImageErrors
+union distinct
+select * from RSSErrors
+union distinct
+select * from SpreadsheetErrors
+union distinct
+select * from TextErrors
+union distinct
+select * from TimeDateErrors
+union distinct
+select * from VideoErrors
+union distinct
+select * from WebPageErrors
+),
+
+CalendarInstanceCount as
+(
+select count(*) as calendarWidgets from CalendarInstances
+),
+
+CalendarErrorCount as
+(
+select count(*) as calendarWidgetErrors from CalendarErrors
+),
+
+ComponentDataInstanceCount as
+(
+select count(*) as componentDataWidgets from ComponentDataInstances
+),
+
+ComponentDataErrorCount as
+(
+select count(*) as componentDataWidgetErrors from ComponentDataErrors
+),
+
+ComponentFinancialInstanceCount as
+(
+select count(*) as componentFinancialWidgets from ComponentFinancialInstances
+),
+
+ComponentFinancialErrorCount as
+(
+select count(*) as componentFinancialWidgetErrors from ComponentFinancialErrors
+),
+
+ComponentRSSInstanceCount as
+(
+select count(*) as componentRSSWidgets from ComponentRSSInstances
+),
+
+ComponentRSSErrorCount as
+(
+select count(*) as componentRSSWidgetErrors from ComponentRSSErrors
+),
+
+ComponentSheetInstanceCount as
+(
+select count(*) as componentSheetWidgets from ComponentSheetInstances
+),
+
+ComponentSheetErrorCount as
+(
+select count(*) as componentSheetWidgetErrors from ComponentSheetErrors
+),
+
+ComponentStorageInstanceCount as
+(
+select count(*) as componentStorageWidgets from ComponentStorageInstances
+),
+
+ComponentStorageErrorCount as
+(
+select count(*) as componentStorageWidgetErrors from ComponentStorageErrors
+),
+
+ImageInstanceCount as
+(
+select count(*) as imageWidgets from ImageInstances
+),
+
+ImageErrorCount as
+(
+select count(*) as imageWidgetErrors from ImageErrors
+),
+
+HTMLInstanceCount as
+(
+select count(*) as htmlWidgets from HTMLInstances
+),
+
+HTMLErrorCount as
+(
+select count(*) as htmlWidgetErrors from HTMLErrors
+),
+
+RSSInstanceCount as
+(
+select count(*) as rssWidgets from RSSInstances
+),
+
+RSSErrorCount as
+(
+select count(*) as rssWidgetErrors from RSSErrors
+),
+
+SpreadsheetInstanceCount as
+(
+select count(*) as spreadsheetWidgets from SpreadsheetInstances
+),
+
+SpreadsheetErrorCount as
+(
+select count(*) as spreadsheetWidgetErrors from SpreadsheetErrors
+),
+
+TextInstanceCount as
+(
+select count(*) as textWidgets from TextInstances
+),
+
+TextErrorCount as
+(
+select count(*) as textWidgetErrors from TextErrors
+),
+
+TimeDateInstanceCount as
+(
+select count(*) as timeDateWidgets from TimeDateInstances
+),
+
+TimeDateErrorCount as
+(
+select count(*) as timeDateWidgetErrors from TimeDateErrors
+),
+
+VideoInstanceCount as
+(
+select count(*) as videoWidgets from VideoInstances
+),
+
+VideoErrorCount as
+(
+select count(*) as videoWidgetErrors from VideoErrors
+),
+
+WebPageInstanceCount as
+(
+select count(*) as webPageWidgets from WebPageInstances
+),
+
+WebPageErrorCount as
+(
+select count(*) as webPageWidgetErrors from WebPageErrors
+),
+
+TotalInstanceCount as
+(
+select count(*) as activeSharedSchedules from CombinedInstances
+),
+
+TotalErrorCount as
+(
+select count(*) as sharedScheduleErrors from CombinedErrors
+)
+
+select 
+  if(activeSharedSchedules > 0 , (activeSharedSchedules - sharedScheduleErrors) / activeSharedSchedules, null) as sharedScheduleUptime,
+  if(calendarWidgets > 0 , (calendarWidgets - calendarWidgetErrors) / calendarWidgets, null) as calendarUptime,
+  calendarWidgets as calendarUsage,
+  calendarWidgetErrors as calendarErrors,
+  if(componentDataWidgets > 0 , (componentDataWidgets - componentDataWidgetErrors) / componentDataWidgets, null) as componentDataUptime,
+  componentDataWidgets as componentDataUsage,
+  componentDataWidgetErrors as componentDataErrors,
+  if(componentFinancialWidgets > 0 , (componentFinancialWidgets - componentFinancialWidgetErrors) / componentFinancialWidgets, null) as componentFinancialUptime,
+  componentFinancialWidgets as componentFinancialUsage,
+  componentFinancialWidgetErrors as componentFinancialErrors,
+  if(componentRSSWidgets > 0 , (componentRSSWidgets - componentRSSWidgetErrors) / componentRSSWidgets, null) as componentRSSUptime,
+  componentRSSWidgets as componentRSSUsage,
+  componentRSSWidgetErrors as componentRSSErrors,
+  if(componentSheetWidgets > 0 , (componentSheetWidgets - componentSheetWidgetErrors) / componentSheetWidgets, null) as componentSheetUptime,
+  componentSheetWidgets as componentSheetUsage,
+  componentSheetWidgetErrors as componentSheetErrors,
+  if(componentStorageWidgets > 0 , (componentStorageWidgets - componentStorageWidgetErrors) / componentStorageWidgets, null) as componentStorageUptime,
+  componentStorageWidgets as componentStorageUsage,
+  componentStorageWidgetErrors as componentStorageErrors,
+  if(imageWidgets > 0 , (imageWidgets - imageWidgetErrors) / imageWidgets, null) as imageUptime,
+  imageWidgets as imageUsage,
+  imageWidgetErrors as imageErrors,
+  if(htmlWidgets > 0 , (htmlWidgets - htmlWidgetErrors) / htmlWidgets, null) as htmlUptime,  
+  htmlWidgets as htmlUsage,
+  htmlWidgetErrors as htmlErrors,
+  if(rssWidgets > 0 , (rssWidgets - rssWidgetErrors) / rssWidgets, null) as rssUptime,
+  rssWidgets as rssUsage,
+  rssWidgetErrors as rssErrors,
+  if(spreadsheetWidgets > 0 , (spreadsheetWidgets - spreadsheetWidgetErrors) / spreadsheetWidgets, null) as spreadsheetUptime,
+  spreadsheetWidgets as spreadsheetUsage,
+  spreadsheetWidgetErrors as spreadsheetErrors,
+  if(textWidgets > 0 , (textWidgets - textWidgetErrors) / textWidgets, null) as textUptime,
+  textWidgets as textUsage,
+  textWidgetErrors as textErrors,
+  if(timeDateWidgets > 0 , (timeDateWidgets - timeDateWidgetErrors) / timeDateWidgets, null) as timeDateUptime,
+  timeDateWidgets as timeDateUsage,
+  timeDateWidgetErrors as timeDateErrors,
+  if(videoWidgets > 0 , (videoWidgets - videoWidgetErrors) / videoWidgets, null) as videoUptime,
+  videoWidgets as videoUsage,
+  videoWidgetErrors as videoErrors,
+  if(webPageWidgets > 0 , (webPageWidgets - webPageWidgetErrors) / webPageWidgets, null) as webPageUptime,
+  webPageWidgets as webPageUsage,
+  webPageWidgetErrors as webPageErrors
+from 
+TotalInstanceCount, TotalErrorCount,
+CalendarInstanceCount, CalendarErrorCount,
+ComponentDataInstanceCount, ComponentDataErrorCount,
+ComponentFinancialInstanceCount, ComponentFinancialErrorCount,
+ComponentRSSInstanceCount, ComponentRSSErrorCount,
+ComponentSheetInstanceCount, ComponentSheetErrorCount,
+ComponentStorageInstanceCount, ComponentStorageErrorCount,
+ImageInstanceCount, ImageErrorCount,
+HTMLInstanceCount, HTMLErrorCount,
+RSSInstanceCount, RSSErrorCount,
+SpreadsheetInstanceCount, SpreadsheetErrorCount,
+TextInstanceCount, TextErrorCount,
+TimeDateInstanceCount, TimeDateErrorCount,
+VideoInstanceCount, VideoErrorCount,
+WebPageInstanceCount, WebPageErrorCount

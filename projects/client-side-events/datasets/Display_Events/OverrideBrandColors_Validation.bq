@@ -1,0 +1,53 @@
+#standardSQL
+
+WITH
+presentationsCreatedUpdated AS (
+  SELECT DISTINCT(presentationId)
+      FROM `client-side-events.Display_Events.presentations_created_or_updated`
+),
+
+allDisplays AS (
+  SELECT DATE(ts) AS date, *
+  FROM `client-side-events.Display_Events.events*`
+  WHERE ts >= "2020-08-04 00:00:00.000 UTC"
+  AND platform = 'content'
+  AND display_id != 'DISPLAY_ID'
+  AND company_id NOT IN -- test companies
+  (
+    '7fa5ee92-7deb-450b-a8d5-e5ed648c575f',
+    'fee1f642-cdd1-4bc4-8f93-1fc97cb00d55',
+    'a9575a1e-00a8-4d87-b640-979d0623f844'
+  )
+  AND rollout_stage = 'stable'
+  AND source != "rise-data-financial" /* templates with financial component do not have branding option */
+  AND template.name NOT LIKE "example-%" /* don't include any development "example" templates */
+  AND template.presentation_id IN ( /* ensure this template/presentation instance is one that was created or updated within release range */
+    SELECT * from presentationsCreatedUpdated
+  )
+)
+
+SELECT * FROM (
+  SELECT
+     available.date as usage_date,
+     totalBrandingPresentations,
+     IFNULL(overrideApplied,0) as overrideCount,
+     ((IFNULL(overrideApplied,0))/totalBrandingPresentations) as overrideUsage,
+  FROM (
+    SELECT COUNT(DISTINCT template.presentation_id) as totalBrandingPresentations, date
+    FROM allDisplays
+    GROUP BY date
+  ) AS available
+  LEFT JOIN (
+    SELECT COUNT(DISTINCT presentationId) as overrideApplied, date
+    FROM (
+      SELECT template.presentation_id as presentationId, date FROM allDisplays
+      WHERE component.id = 'Branding'
+      AND event = 'brand colors'
+      AND event_details LIKE '%override":true%'
+    )
+    GROUP BY date
+  ) AS override
+  ON available.date=override.date
+)
+ORDER BY usage_date DESC
+

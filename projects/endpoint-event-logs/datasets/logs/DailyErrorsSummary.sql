@@ -35,7 +35,7 @@ select
   C.*
 from `rise-core-log.coreData.companies` C
 inner join (select max(id) as id, companyId from `rise-core-log.coreData.companies` group by companyId) CC on C.id=CC.id
-where C.appId = 's~rvaserver2' and C.isTest = false and not (C.companyId in (select id from `rise-core-log.coreData.deleted` where kind = 'Company'))
+where C.appId = 's~rvaserver2' and C.isTest = false
 ),
 
 productionDisplays as
@@ -44,7 +44,7 @@ select
   D.*
 from `rise-core-log.coreData.displays` D
 inner join (select max(id) as id, displayId from `rise-core-log.coreData.displays` group by displayId) DD on D.id = DD.id
-where D.appId = 's~rvaserver2' and not (D.displayId in (select id from `rise-core-log.coreData.deleted` where kind = 'Display'))
+where D.appId = 's~rvaserver2'
 ),
 
 productionSchedules as
@@ -53,7 +53,7 @@ select
   S.*
 from `rise-core-log.coreData.schedules` S
 inner join (select max(id) as id, scheduleId from `rise-core-log.coreData.schedules` group by scheduleId) SS on S.id = SS.id
-where S.appId = 's~rvaserver2' and not (S.scheduleId in (select id from `rise-core-log.coreData.deleted` where kind = 'Schedule'))
+where S.appId = 's~rvaserver2'
 ),
 
 upToDateHierarchy as

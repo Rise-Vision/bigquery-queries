@@ -126,7 +126,7 @@ case E.endpointType
 end as companyId
 from errorCounts E
 left outer join productionDisplays D on E.endpointId = D.displayId
-left outer join productionSchedules S on E.endpointId = S.scheduleId
+left outer join productionSchedules S on E.scheduleId = S.scheduleId
 )
 
 select 

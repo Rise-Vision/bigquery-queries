@@ -22,7 +22,6 @@ networkCompanyIndustry,
 dailyDirectCost,
 dailyIndirectCost
 )
-
 with
 
 productionCompanies as
@@ -90,7 +89,7 @@ where C.parentId = 'f114ad26-949d-44b4-87e9-8528afc76ce4' -- production Rise Vis
 downloadCost as
 (
 select sum(cost) as totalDownloadCost from `rise-core-log.billingData.gcp_billing_export_v1_00FE29_4FDD82_EF884E` 
-WHERE DATE(_PARTITIONTIME) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) AND project.id = 'avid-life-623' and service.description = 'Cloud Storage' and starts_with(sku.description, 'Download')
+WHERE (DATE(_PARTITIONTIME) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) or DATE(_PARTITIONTIME) = CURRENT_DATE()) and date(usage_end_time) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) AND project.id = 'avid-life-623' and service.description = 'Cloud Storage' and starts_with(sku.description, 'Download')
 ),
 
 downloadBandwidth as
@@ -117,7 +116,7 @@ group by 1, 2, 3
 streamInsertCost as
 (
 select sum(cost) as totalStreamInsertCost from `rise-core-log.billingData.gcp_billing_export_v1_00FE29_4FDD82_EF884E` 
-WHERE DATE(_PARTITIONTIME) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) and project.id = 'endpoint-event-logs' and service.description = 'BigQuery' and sku.description = 'Streaming Insert'
+WHERE (DATE(_PARTITIONTIME) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) or DATE(_PARTITIONTIME) = CURRENT_DATE()) and date(usage_end_time) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) and project.id = 'endpoint-event-logs' and service.description = 'BigQuery' and sku.description = 'Streaming Insert'
 ),
 
 streamInsertCount as

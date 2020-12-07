@@ -1,0 +1,44 @@
+#standardSQL
+insert into `endpoint-event-logs.logs.dailyCost` 
+(
+  date,
+  endpointId,
+  endpointType,
+  licenseStatus,
+  browserVersion,
+  playerVersion,
+  viewerVersion,
+  osVersion,
+  scheduleId,
+  companyId,
+  companyName,
+  companyIndustry,
+  parentCompanyId,
+  parentCompanyName,
+  networkCompanyId,
+  networkCompanyName,
+  networkCompanyIndustry,
+  dailyDirectCost,
+  dailyIndirectCost
+)
+select 
+  date,
+  endpointId,
+  endpointType,
+  licenseStatus,
+  browserVersion,
+  playerVersion,
+  viewerVersion,
+  osVersion,
+  scheduleId,
+  companyId,
+  companyName,
+  companyIndustry,
+  parentCompanyId,
+  parentCompanyName,
+  networkCompanyId,
+  networkCompanyName,
+  networkCompanyIndustry,
+  dailyDirectCost,
+  dailyIndirectCost
+from `endpoint-event-logs.logs.dailyCostSummary`

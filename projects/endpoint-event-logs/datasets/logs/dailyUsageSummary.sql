@@ -74,13 +74,12 @@ where C.parentId = 'f114ad26-949d-44b4-87e9-8528afc76ce4' -- production Rise Vis
 
 playerVersions as
 (
-select
-  max(ts) as timestamp,
-  display_id as displayId,
+select 
+  C.display_id as displayId,
   concat(player_name, ' ', player_version)  as playerVersion
-from `client-side-events.Player_Data.configuration`
-where trim(concat(player_name, ' ', player_version)) <> ''
-group by 2, 3
+from `client-side-events.Player_Data.configuration` C
+inner join (select max(ts) as ts, display_id from `client-side-events.Player_Data.configuration` group by 2) CC on C.ts = CC.ts and C.display_id = CC.display_id
+group by 1, 2
 ),
 
 licensedDisplays as

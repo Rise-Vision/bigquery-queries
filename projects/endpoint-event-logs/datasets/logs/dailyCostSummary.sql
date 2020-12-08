@@ -1,27 +1,3 @@
-#standardSQL
-
-insert into `endpoint-event-logs.logs.dailyCost` 
-(
-date,
-endpointId,
-endpointType,
-licenseStatus,
-browserVersion,
-playerVersion,
-viewerVersion,
-osVersion,
-scheduleId,
-companyId,
-companyName,
-companyIndustry,
-parentCompanyId,
-parentCompanyName,
-networkCompanyId,
-networkCompanyName,
-networkCompanyIndustry,
-dailyDirectCost,
-dailyIndirectCost
-)
 with
 
 productionCompanies as
@@ -86,6 +62,47 @@ inner join productionCompanies C on N.companyId = C.companyId
 where C.parentId = 'f114ad26-949d-44b4-87e9-8528afc76ce4' -- production Rise Vision Company ID
 ),
 
+playerVersions as
+(
+select 
+  C.display_id as displayId,
+  concat(player_name, ' ', player_version)  as playerVersion
+from `client-side-events.Player_Data.configuration` C
+inner join (select max(ts) as ts, display_id from `client-side-events.Player_Data.configuration` group by 2) CC on C.ts = CC.ts and C.display_id = CC.display_id
+group by 1, 2
+),
+
+licensedDisplays as
+(
+select
+  companyId,
+  displayId,
+  licensedBy
+from (
+select
+  S.companyId,
+  displayId,
+  S.companyId as licensedBy
+from `rise-core-log.coreData.companySubscriptions` S, S.playerProAssignedDisplays as displayId
+inner join (select max(id) as id, companyId from `rise-core-log.coreData.companySubscriptions` group by companyId) SS on S.id = SS.id
+where
+  (S.planCompanyId is null or S.planCompanyId = "") and
+  `rise-core-log.coreData.arrayIndexOf`(S.playerProAssignedDisplays, displayId) < `rise-core-log.coreData.getTotalLicenses`(S.planSubscriptionStatus, S.planCurrentPeriodEndDate, S.planTrialExpiryDate, S.playerProSubscriptionStatus, S.playerProCurrentPeriodEndDate, S.planPlayerProLicenseCount, S.playerProLicenseCount)
+union distinct
+select
+  SC.companyId,
+  displayId,
+  S.companyId as licensedBy
+from `rise-core-log.coreData.companySubscriptions` S, S.playerProTotalAssignedDisplays as displayId
+inner join (select max(id) as id, companyId from `rise-core-log.coreData.companySubscriptions` group by companyId) SS on S.id = SS.id
+inner join `rise-core-log.coreData.companySubscriptions` SC on S.companyId = SC.planCompanyId
+inner join (select max(id) as id, companyId from `rise-core-log.coreData.companySubscriptions` group by companyId) SSS on SC.id = SSS.id
+inner join productionDisplays D on SC.companyId = D.companyId and displayId = D.displayId
+where
+  `rise-core-log.coreData.arrayIndexOf`(S.playerProTotalAssignedDisplays, displayId) < `rise-core-log.coreData.getTotalLicenses`(S.planSubscriptionStatus, S.planCurrentPeriodEndDate, S.planTrialExpiryDate, S.playerProSubscriptionStatus, S.playerProCurrentPeriodEndDate, S.planPlayerProLicenseCount, S.playerProLicenseCount)
+)
+),
+
 downloadCost as
 (
 select sum(cost) as totalDownloadCost from `rise-core-log.billingData.gcp_billing_export_v1_00FE29_4FDD82_EF884E` 
@@ -144,15 +161,13 @@ select
   DATE(timestamp) as date,
   endpointId,
   endpointType,
-  licenseStatus,
   browserVersion,
   osVersion,
-  playerVersion,
-  viewerVersion,
+  eventAppVersion as viewerVersion,
   scheduleId
-from `endpoint-event-logs.logs.eventLog`
+from `endpoint-event-logs.heartbeats.uptimeHeartbeats`
 where DATE(timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
-group by 1, 2, 3, 4, 5, 6, 7, 8, 9
+group by 1, 2, 3, 4, 5, 6, 7
 ),
 
 costs as
@@ -176,9 +191,9 @@ select
   CO.date,
   CO.endpointId,
   CO.endpointType,
-  CO.licenseStatus,
+  if(L.displayId is null, 'Unlicensed', 'Licensed') as licenseStatus,
   CO.browserVersion,
-  CO.playerVersion,
+  V.playerVersion,
   CO.viewerVersion,
   CO.osVersion,
   CO.scheduleId,
@@ -196,3 +211,5 @@ from costs CO
 left outer join productionCompanies C on CO.companyId = C.companyId
 left outer join productionCompanies P on C.parentId = P.companyId
 left outer join networkCompanies N on C.companyId = N.subCompanyId 
+left outer join playerVersions V on CO.endpointId = V.displayId
+left outer join licensedDisplays L on CO.endpointId = L.displayId

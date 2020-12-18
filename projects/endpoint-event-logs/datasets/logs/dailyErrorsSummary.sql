@@ -72,37 +72,6 @@ inner join (select max(ts) as ts, display_id from `client-side-events.Player_Dat
 group by 1, 2
 ),
 
-licensedDisplays as
-(
-select
-  companyId,
-  displayId,
-  licensedBy
-from (
-select
-  S.companyId,
-  displayId,
-  S.companyId as licensedBy
-from `rise-core-log.coreData.companySubscriptions` S, S.playerProAssignedDisplays as displayId
-inner join (select max(id) as id, companyId from `rise-core-log.coreData.companySubscriptions` group by companyId) SS on S.id = SS.id
-where
-  (S.planCompanyId is null or S.planCompanyId = "") and
-  `rise-core-log.coreData.arrayIndexOf`(S.playerProAssignedDisplays, displayId) < `rise-core-log.coreData.getTotalLicenses`(S.planSubscriptionStatus, S.planCurrentPeriodEndDate, S.planTrialExpiryDate, S.playerProSubscriptionStatus, S.playerProCurrentPeriodEndDate, S.planPlayerProLicenseCount, S.playerProLicenseCount)
-union distinct
-select
-  SC.companyId,
-  displayId,
-  S.companyId as licensedBy
-from `rise-core-log.coreData.companySubscriptions` S, S.playerProTotalAssignedDisplays as displayId
-inner join (select max(id) as id, companyId from `rise-core-log.coreData.companySubscriptions` group by companyId) SS on S.id = SS.id
-inner join `rise-core-log.coreData.companySubscriptions` SC on S.companyId = SC.planCompanyId
-inner join (select max(id) as id, companyId from `rise-core-log.coreData.companySubscriptions` group by companyId) SSS on SC.id = SSS.id
-inner join productionDisplays D on SC.companyId = D.companyId and displayId = D.displayId
-where
-  `rise-core-log.coreData.arrayIndexOf`(S.playerProTotalAssignedDisplays, displayId) < `rise-core-log.coreData.getTotalLicenses`(S.planSubscriptionStatus, S.planCurrentPeriodEndDate, S.planTrialExpiryDate, S.playerProSubscriptionStatus, S.playerProCurrentPeriodEndDate, S.planPlayerProLicenseCount, S.playerProLicenseCount)
-)
-),
-
 errorCounts as
 (
 select 
@@ -143,7 +112,7 @@ select
 E.date,
 E.endpointId,
 E.endpointType,
-if(L.displayId is null, 'Unlicensed', 'Licensed') as licenseStatus,
+if(L.displayId is null, 'Unlicensed', if(L.planSubscriptionStatus <> 'Suspended', 'Licensed', 'Suspended')) as licenseStatus,
 E.browserVersion,
 E.osVersion,
 V.playerVersion,
@@ -170,4 +139,4 @@ left outer join productionCompanies C on E.companyId = C.companyId
 left outer join productionCompanies P on C.parentId = P.companyId
 left outer join networkCompanies N on C.companyId = N.subCompanyId 
 left outer join playerVersions V on E.endpointId = V.displayId
-left outer join licensedDisplays L on E.endpointId = L.displayId
+left outer join rise-core-log.coreData.licensedDisplays L on E.endpointId = L.displayId

@@ -1,32 +1,3 @@
-#standardSQL
-insert into `endpoint-event-logs.logs.dailyErrors` 
-(
-date,
-endpointId,
-endpointType,
-licenseStatus,
-browserVersion, 
-osVersion, 
-playerVersion, 
-viewerVersion, 
-scheduleId, 
-presentationId,
-placeholderId,
-componentId,
-scheduleItemUrl,
-eventApp,
-eventAppVersion,
-companyId,
-companyName,
-companyIndustry,
-parentCompanyId,
-parentCompanyName,
-networkCompanyId,
-networkCompanyName,
-networkCompanyIndustry,
-eventErrorCode,
-errorCount
-)
 with
 
 productionCompanies as
@@ -91,16 +62,24 @@ inner join productionCompanies C on N.companyId = C.companyId
 where C.parentId = 'f114ad26-949d-44b4-87e9-8528afc76ce4' -- production Rise Vision Company ID
 ),
 
+playerVersions as
+(
+select 
+  C.display_id as displayId,
+  concat(player_name, ' ', player_version)  as playerVersion
+from `client-side-events.Player_Data.configuration` C
+inner join (select max(ts) as ts, display_id from `client-side-events.Player_Data.configuration` group by 2) CC on C.ts = CC.ts and C.display_id = CC.display_id
+group by 1, 2
+),
+
 errorCounts as
 (
 select 
   DATE(timestamp) as date,
   endpointId,
   endpointType,
-  licenseStatus,
   browserVersion,
   osVersion,
-  playerVersion,
   viewerVersion,
   scheduleId,
   presentationId,
@@ -113,7 +92,7 @@ select
   count(*) as errorCount
 from `endpoint-event-logs.logs.eventLog`
 where DATE(timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
-group by 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
+group by 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14
 ),
 
 errorCountsWithCompanyId as 
@@ -133,10 +112,10 @@ select
 E.date,
 E.endpointId,
 E.endpointType,
-E.licenseStatus,
+if(L.displayId is null, 'Unlicensed', if(L.planSubscriptionStatus <> 'Suspended', 'Licensed', 'Suspended')) as licenseStatus,
 E.browserVersion,
 E.osVersion,
-E.playerVersion,
+V.playerVersion,
 E.viewerVersion,
 E.scheduleId,
 E.presentationId,
@@ -159,3 +138,5 @@ from errorCountsWithCompanyId E
 left outer join productionCompanies C on E.companyId = C.companyId
 left outer join productionCompanies P on C.parentId = P.companyId
 left outer join networkCompanies N on C.companyId = N.subCompanyId 
+left outer join playerVersions V on E.endpointId = V.displayId
+left outer join rise-core-log.coreData.licensedDisplays L on E.endpointId = L.displayId

@@ -1,0 +1,31 @@
+WITH
+  ssEvents AS (
+  SELECT
+    *
+  FROM
+    `client-side-events.Shared_Schedule_Events.errors`
+  WHERE
+    DATE(ts) >= date_sub(current_date(), INTERVAL 5 DAY))
+SELECT
+  *
+FROM
+  ssEvents
+LEFT JOIN (
+  SELECT
+    a.scheduleId,
+    a.id,
+    a.companyId
+  FROM
+    `rise-core-log.coreData.schedules` a
+  INNER JOIN (
+    SELECT
+      scheduleId,
+      MAX(id) id
+    FROM
+      `rise-core-log.coreData.schedules`
+    GROUP BY
+      scheduleId) b
+  USING
+    (id) ) schedules
+ON
+  schedules.scheduleId = ssEvents.schedule_id

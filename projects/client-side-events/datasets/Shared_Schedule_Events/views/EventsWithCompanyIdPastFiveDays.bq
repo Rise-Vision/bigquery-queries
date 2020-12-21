@@ -5,7 +5,7 @@ WITH
   FROM
     `client-side-events.Shared_Schedule_Events.errors`
   WHERE
-    DATE(ts) >= date_sub(current_date(), INTERVAL 5 DAY))
+    DATE(ts) >= date_sub(current_date(), INTERVAL 5 DAY) and viewer_url not like "%apps_%")
 SELECT
   *
 FROM

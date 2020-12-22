@@ -6,7 +6,7 @@ select
   C.*
 from `rise-core-log.coreData.companies` C
 inner join (select max(id) as id, companyId from `rise-core-log.coreData.companies` group by companyId) CC on C.id=CC.id
-where C.appId = 's~rvaserver2' and C.isTest = false
+where C.appId = 's~rvaserver2'
 ),
 
 productionDisplays as

@@ -1,0 +1,17 @@
+with enpointErrors as (
+select date, count(distinct instance_id) endpointsWithErrors from `client-side-events.Shared_Schedule_Events.CompaniesAndEndpointsWithErrors` group by date
+),
+
+companyErrors as (
+select date, count(distinct company_id) companiesWithErrors from `client-side-events.Shared_Schedule_Events.CompaniesAndEndpointsWithErrors` group by date
+),
+
+totalCompanies as (
+select date(ts) date, count(distinct companyId) totalCompanies from `client-side-events.Shared_Schedule_Events.EventsWithCompanyIdPastFiveDays` group by date
+),
+
+totalEndpoints as (
+select date(ts) date, count(distinct instance_id) totalEndpoints from `client-side-events.Shared_Schedule_Events.EventsWithCompanyIdPastFiveDays` group by date
+)
+
+select * from enpointErrors left join companyErrors using (date) left join totalCompanies using (date) left join totalEndpoints using (date) where date <= date_sub(current_date(), interval 1 day) and date >= date_sub(current_date(), interval 5 day) order by date desc

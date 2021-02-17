@@ -95,13 +95,11 @@ select
   presentationId,
   placeholderId,
   componentId,
-  scheduleItemUrl,
-  eventApp,
-  eventAppVersion
+  scheduleItemUrl
 from `endpoint-event-logs.heartbeats.uptimeHeartbeats`
 where DATE(timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) and
 eventApp = 'Viewer'
-group by 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
+group by 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
 ),
 
 uptimeErrors as
@@ -110,11 +108,12 @@ select
   TIMESTAMP_SECONDS(DIV(UNIX_SECONDS(timestamp), 300) * 300) as intervalStart,
   L.endpointId,
   L.eventApp,
+  L.eventAppVersion,
   count(L.eventErrorCode) as errorCount
 from `endpoint-event-logs.logs.eventLog` L
 inner join `endpoint-event-logs.errors.errorDefinitions` E on L.eventErrorCode = E.code 
 where DATE(L.timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) and UPPER(E.isRelatedToUptime) = 'Y'
-group by 1, 2, 3
+group by 1, 2, 3, 4
 ),
 
 uptimeIntervals as
@@ -122,14 +121,16 @@ uptimeIntervals as
 select 
   TIMESTAMP_SECONDS(DIV(UNIX_SECONDS(timestamp), 300) * 300) as intervalStart,
   endpointId,
-  eventApp
+  eventApp,
+  eventAppVersion
 from `endpoint-event-logs.heartbeats.uptimeHeartbeats`
 where DATE(timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
 union distinct
 select
   TIMESTAMP_SECONDS(DIV(UNIX_SECONDS(timestamp), 300) * 300) as intervalStart,
   endpointId,
-  eventApp
+  eventApp,
+  eventAppVersion
 from `endpoint-event-logs.logs.eventLog`
 where DATE(timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
 ),
@@ -140,7 +141,7 @@ select
   I.*,
   IF(E.errorCount is null or E.errorCount = 0, "up", "down") as intervalStatus
 from uptimeIntervals I
-left outer join uptimeErrors E on I.intervalStart = E.intervalStart and I.endpointId = E.endpointId and I.eventApp = E.eventApp 
+left outer join uptimeErrors E on I.intervalStart = E.intervalStart and I.endpointId = E.endpointId and I.eventApp = E.eventApp and I.eventAppVersion = E.eventAppVersion
 ),
 
 endpointAppIntervalCount as
@@ -148,9 +149,10 @@ endpointAppIntervalCount as
 select
   endpointId,
   eventApp,
+  eventAppVersion,
   count(*) as endpointAppIntervals
 from uptimeAndDowntime
-group by 1, 2
+group by 1, 2, 3
 ),
 
 endpointIntervalCount as
@@ -167,10 +169,11 @@ endpointAppUpIntervalCount as
 select
   endpointId,
   eventApp,
+  eventAppVersion,
   count(*) as endpointAppUpIntervals
 from uptimeAndDowntime
 where intervalStatus = 'up'
-group by 1, 2
+group by 1, 2, 3
 ),
 
 endpointUpIntervalCount as
@@ -196,9 +199,10 @@ endpointAppUptime as (
 select 
   T.endpointId,
   T.eventApp,
+  T.eventAppVersion, 
   ifnull(endpointAppUpIntervals, 0) / ifnull(endpointAppIntervals, 1) as uptimePercentage
 from endpointAppIntervalCount T
-left outer join endpointAppUpIntervalCount U on T.endpointId = U.endpointId and T.eventApp = U.eventApp
+left outer join endpointAppUpIntervalCount U on T.endpointId = U.endpointId and T.eventApp = U.eventApp and T.eventAppVersion = U.eventAppVersion
 ),
 
 endpointUptimeWithFields as (
@@ -243,15 +247,15 @@ select
   P.productCode as templateId,
   M.componentId,
   M.scheduleItemUrl,
-  M.eventApp,
-  M.eventAppVersion,
+  U.eventApp,
+  U.eventAppVersion,
   case M.endpointType 
     when 'Display' then D.companyId
     else S.companyId
   end as companyId,
   U.uptimePercentage
 from mentions M
-inner join endpointAppUptime U on M.endpointId = U.endpointId and M.eventApp = U.eventApp
+inner join endpointAppUptime U on M.endpointId = U.endpointId
 left outer join productionDisplays D on M.endpointId = D.displayId
 left outer join productionSchedules S on M.scheduleId = S.scheduleId
 left outer join productionPresentations P on M.presentationId = P.presentationId

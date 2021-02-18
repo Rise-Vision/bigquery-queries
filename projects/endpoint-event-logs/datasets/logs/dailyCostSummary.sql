@@ -135,7 +135,8 @@ select
   eventAppVersion as viewerVersion,
   scheduleId
 from `endpoint-event-logs.heartbeats.uptimeHeartbeats`
-where DATE(timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
+where DATE(timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) and
+eventApp = 'Viewer'
 group by 1, 2, 3, 4, 5, 6, 7
 ),
 

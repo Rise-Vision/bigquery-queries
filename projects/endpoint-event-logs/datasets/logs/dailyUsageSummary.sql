@@ -92,7 +92,7 @@ select
   placeholderId,
   componentId,
   scheduleItemUrl,
-  eventApp,
+  `endpoint-event-logs.logs.cleanUpEventApp`(eventApp) as eventApp,
   eventAppVersion,
   count(*) as heartbeatCount
 from `endpoint-event-logs.heartbeats.uptimeHeartbeats`
@@ -113,19 +113,19 @@ select
   presentationId,
   placeholderId,
   componentId,
-  scheduleItemUrl,
-  eventApp,
-  eventAppVersion
+  scheduleItemUrl
 from `endpoint-event-logs.heartbeats.uptimeHeartbeats`
 where DATE(timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) and
 eventApp = 'Viewer'
-group by 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
+group by 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
 ),
 
 usage as 
 (
 select 
 M.*,
+H.eventApp,
+H.eventAppVersion,
 case M.endpointType 
   when 'Display' then D.companyId
   else S.companyId
@@ -137,8 +137,7 @@ left outer join productionDisplays D on M.endpointId = D.displayId
 left outer join productionSchedules S on M.scheduleId = S.scheduleId
 left outer join productionPresentations P on M.presentationId = P.presentationId
 left outer join heartbeatCounts H on M.date = H.date and M.endpointId = H.endpointId and M.scheduleId = H.scheduleId and ifnull(M.presentationId, '') = ifnull(H.presentationId, '') and
-  ifnull(M.placeholderId, '') = ifnull(H.placeholderId, '') and ifnull(M.componentId, '') = ifnull(H.componentId, '') and ifnull(M.scheduleItemUrl, '') = ifnull(H.scheduleItemUrl, '') and 
-  M.eventApp = H.eventApp and M.eventAppVersion = H.eventAppVersion
+  ifnull(M.placeholderId, '') = ifnull(H.placeholderId, '') and ifnull(M.componentId, '') = ifnull(H.componentId, '') and ifnull(M.scheduleItemUrl, '') = ifnull(H.scheduleItemUrl, '')
 )
 
 select 

@@ -107,7 +107,7 @@ uptimeErrors as
 select 
   TIMESTAMP_SECONDS(DIV(UNIX_SECONDS(timestamp), 300) * 300) as intervalStart,
   L.endpointId,
-  L.eventApp,
+  `endpoint-event-logs.logs.cleanUpEventApp`(L.eventApp) as eventApp,
   L.eventAppVersion,
   count(L.eventErrorCode) as errorCount
 from `endpoint-event-logs.logs.eventLog` L
@@ -121,7 +121,7 @@ uptimeIntervals as
 select 
   TIMESTAMP_SECONDS(DIV(UNIX_SECONDS(timestamp), 300) * 300) as intervalStart,
   endpointId,
-  eventApp,
+  `endpoint-event-logs.logs.cleanUpEventApp`(eventApp) as eventApp,
   eventAppVersion
 from `endpoint-event-logs.heartbeats.uptimeHeartbeats`
 where DATE(timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
@@ -129,7 +129,7 @@ union distinct
 select
   TIMESTAMP_SECONDS(DIV(UNIX_SECONDS(timestamp), 300) * 300) as intervalStart,
   endpointId,
-  eventApp,
+  `endpoint-event-logs.logs.cleanUpEventApp`(eventApp) as eventApp,
   eventAppVersion
 from `endpoint-event-logs.logs.eventLog`
 where DATE(timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)

@@ -86,7 +86,7 @@ select
   placeholderId,
   componentId,
   scheduleItemUrl,
-  eventApp,
+  `endpoint-event-logs.logs.cleanUpEventApp`(eventApp) as eventApp,
   eventAppVersion,
   eventErrorCode,
   count(*) as errorCount

@@ -108,22 +108,22 @@ select
   endpointType,
   browserVersion,
   osVersion,
-  eventAppVersion as viewerVersion,
-  scheduleId,
-  presentationId,
-  placeholderId,
-  componentId,
-  scheduleItemUrl
+  eventAppVersion as viewerVersion
 from `endpoint-event-logs.heartbeats.uptimeHeartbeats`
 where DATE(timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) and
 eventApp = 'Viewer'
-group by 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
+group by 1, 2, 3, 4, 5, 6
 ),
 
 usage as 
 (
 select 
 M.*,
+H.scheduleId,
+H.presentationId,
+H.placeholderId,
+H.componentId,
+H.scheduleItemUrl,
 H.eventApp,
 H.eventAppVersion,
 case M.endpointType 
@@ -134,10 +134,9 @@ P.productCode as templateId,
 H.heartbeatCount / 288 as usage
 from mentions M
 left outer join productionDisplays D on M.endpointId = D.displayId
-left outer join productionSchedules S on M.scheduleId = S.scheduleId
-left outer join productionPresentations P on M.presentationId = P.presentationId
-left outer join heartbeatCounts H on M.date = H.date and M.endpointId = H.endpointId and M.scheduleId = H.scheduleId and ifnull(M.presentationId, '') = ifnull(H.presentationId, '') and
-  ifnull(M.placeholderId, '') = ifnull(H.placeholderId, '') and ifnull(M.componentId, '') = ifnull(H.componentId, '') and ifnull(M.scheduleItemUrl, '') = ifnull(H.scheduleItemUrl, '')
+left outer join heartbeatCounts H on M.date = H.date and M.endpointId = H.endpointId
+left outer join productionSchedules S on H.scheduleId = S.scheduleId
+left outer join productionPresentations P on H.presentationId = P.presentationId
 )
 
 select 
@@ -171,4 +170,3 @@ left outer join productionCompanies P on C.parentId = P.companyId
 left outer join networkCompanies N on C.companyId = N.subCompanyId 
 left outer join playerVersions V on U.endpointId = V.displayId
 left outer join rise-core-log.coreData.licensedDisplays L on U.endpointId = L.displayId
-

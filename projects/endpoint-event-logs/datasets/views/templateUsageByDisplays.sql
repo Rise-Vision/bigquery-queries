@@ -3,7 +3,7 @@
 select distinct 
   date,
   endpointId as displayId,
-  templateId
+  substr(eventApp, 16) as templateId
 from
   `endpoint-event-logs.logs.dailyUsage`
-where date between DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY) and DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) and endpointType = 'Display' and trim(ifnull(templateId, '')) <> ''
+where date between DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY) and DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) and endpointType = 'Display' and eventApp like 'HTML Template: %'

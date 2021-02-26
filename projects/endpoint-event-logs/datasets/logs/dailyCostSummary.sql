@@ -12,19 +12,23 @@ where C.appId = 's~rvaserver2'
 productionDisplays as
 (
 select 
-  D.*
+  D.displayId,
+  D.companyId
 from `rise-core-log.coreData.displays` D
 inner join (select max(id) as id, displayId from `rise-core-log.coreData.displays` group by displayId) DD on D.id = DD.id
 where D.appId = 's~rvaserver2'
+group by 1, 2
 ),
 
 productionSchedules as
 (
 select 
-  S.*
+  S.scheduleId,
+  S.companyId
 from `rise-core-log.coreData.schedules` S
 inner join (select max(id) as id, scheduleId from `rise-core-log.coreData.schedules` group by scheduleId) SS on S.id = SS.id
 where S.appId = 's~rvaserver2'
+group by 1, 2
 ),
 
 upToDateHierarchy as
@@ -65,10 +69,10 @@ where C.parentId = 'f114ad26-949d-44b4-87e9-8528afc76ce4' -- production Rise Vis
 playerVersions as
 (
 select 
-  C.display_id as displayId,
-  concat(player_name, ' ', player_version)  as playerVersion
+  trim(C.display_id) as displayId,
+  concat(trim(player_name), ' ', trim(player_version))  as playerVersion
 from `client-side-events.Player_Data.configuration` C
-inner join (select max(ts) as ts, display_id from `client-side-events.Player_Data.configuration` group by 2) CC on C.ts = CC.ts and C.display_id = CC.display_id
+inner join (select max(ts) as ts, display_id from `client-side-events.Player_Data.configuration` where DATE(ts) <= DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) and trim(display_id) != '' group by 2) CC on C.ts = CC.ts and C.display_id = CC.display_id
 group by 1, 2
 ),
 
@@ -98,63 +102,101 @@ where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 D
 group by 1, 2, 3
 ),
 
-
 streamInsertCost as
 (
 select sum(cost) as totalStreamInsertCost from `rise-core-log.billingData.gcp_billing_export_v1_00FE29_4FDD82_EF884E` 
 WHERE (DATE(_PARTITIONTIME) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) or DATE(_PARTITIONTIME) = CURRENT_DATE()) and date(usage_end_time) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) and project.id = 'endpoint-event-logs' and service.description = 'BigQuery' and sku.description = 'Streaming Insert'
 ),
 
-streamInsertCount as
+logInserts as
 (
-select count(*) as totalInsertCount
+select count(*) as totalLogInsertCount
 from `endpoint-event-logs.logs.eventLog`
 where DATE(timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
 ),
 
-endpointInserts as
+endpointLogInserts as
 (
 select 
   endpointId,
   endpointType,
   scheduleId,
-  count(*) as insertCount
+  count(*) as logInsertCount
 from `endpoint-event-logs.logs.eventLog`
 where DATE(timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
 group by 1, 2, 3
 ),
 
-endpointMentions as
+heartbeatInserts as
+(
+select count(*) as totalHeartbeatInsertCount
+from `endpoint-event-logs.heartbeats.uptimeHeartbeats`
+where DATE(timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
+),
+
+endpointHeartbeatInserts as
 (
 select 
-  DATE(timestamp) as date,
   endpointId,
   endpointType,
-  browserVersion,
-  osVersion,
-  eventAppVersion as viewerVersion,
-  scheduleId
+  scheduleId,
+  count(*) as heatbeatInsertCount
 from `endpoint-event-logs.heartbeats.uptimeHeartbeats`
-where DATE(timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) and
-eventApp = 'Viewer'
-group by 1, 2, 3, 4, 5, 6, 7
+where DATE(timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
+group by 1, 2, 3
+),
+
+endpoints as
+(
+select 
+  endpointId,
+  endpointType,
+  scheduleId
+from endpointDownloads
+union distinct
+select 
+  endpointId,
+  endpointType,
+  scheduleId
+from endpointLogInserts
+union distinct
+select 
+  endpointId,
+  endpointType,
+  scheduleId
+from endpointHeartbeatInserts
+),
+
+endpointDetails as
+(
+select 
+  H.endpointId,
+  H.browserVersion,
+  H.osVersion,
+  H.eventAppVersion as viewerVersion
+from `endpoint-event-logs.heartbeats.uptimeHeartbeats` H
+inner join (select max(timestamp) as timestamp, endpointId from `endpoint-event-logs.heartbeats.uptimeHeartbeats` where DATE(timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)  group by 2) HH on H.timestamp = HH.timestamp and H.endpointId = HH.endpointId
+where DATE(H.timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) and eventApp = 'Viewer'
+group by 1, 2, 3, 4
 ),
 
 costs as
 (
 select
-  M.*,
-  case M.endpointType 
+  DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) as date,
+  E.*,
+  case E.endpointType 
     when 'Display' then D.companyId
     else S.companyId
   end as companyId,
-  IFNULL(B.downloadedBytes * totalDownloadCost / totalDownloaded, 0.0) as dailyDirectCost,
-  IFNULL(I.insertCount * totalStreamInsertCost / totalInsertCount, 0.0) as dailyIndirectCost
-from endpointMentions M, downloadBandwidth, downloadCost, streamInsertCost, streamInsertCount
-left outer join endpointDownloads B on M.endpointId = B.endpointId and M.endpointType = B.endpointType and M.scheduleId = B.scheduleId
-left outer join endpointInserts I on M.endpointId = I.endpointId and M.endpointType = I.endpointType and M.scheduleId = I.scheduleId
-left outer join productionDisplays D on M.endpointId = D.displayId
-left outer join productionSchedules S on M.scheduleId = S.scheduleId
+  IFNULL((CAST(B.downloadedBytes as FLOAT64) * CAST(totalDownloadCost as FLOAT64)) / CAST(totalDownloaded as FLOAT64), 0.0) as dailyDirectCost,
+  IFNULL((CAST((IFNULL(logInsertCount, 0) +  IFNULL(heatbeatInsertCount, 0)) as FLOAT64) * CAST(totalStreamInsertCost as FLOAT64)) / CAST((totalLogInsertCount + totalHeartbeatInsertCount) as FLOAT64), 0.0) as dailyIndirectCost
+from endpoints E, downloadBandwidth, downloadCost, streamInsertCost, logInserts, heartbeatInserts
+left outer join endpointDownloads B on E.endpointId = B.endpointId and E.endpointType = B.endpointType and E.scheduleId = B.scheduleId
+left outer join endpointLogInserts LI on E.endpointId = LI.endpointId and E.endpointType = LI.endpointType and E.scheduleId = LI.scheduleId
+left outer join endpointHeartbeatInserts HI on E.endpointId = HI.endpointId and E.endpointType = HI.endpointType and E.scheduleId = HI.scheduleId
+left outer join productionDisplays D on E.endpointId = D.displayId
+left outer join productionSchedules S on E.scheduleId = S.scheduleId
 )
 
 select 
@@ -162,12 +204,12 @@ select
   CO.endpointId,
   CO.endpointType,
   if(L.displayId is null, 'Unlicensed', if(L.planSubscriptionStatus <> 'Suspended', 'Licensed', 'Suspended')) as licenseStatus,
-  CO.browserVersion,
+  D.browserVersion,
   V.playerVersion,
-  CO.viewerVersion,
-  CO.osVersion,
+  D.viewerVersion,
+  D.osVersion,
   CO.scheduleId,
-  C.companyId,
+  CO.companyId,
   C.name as companyName,
   C.companyIndustry,
   P.companyId as parentCompanyId,
@@ -178,6 +220,7 @@ select
   CO.dailyDirectCost,
   CO.dailyIndirectCost
 from costs CO
+left outer join endpointDetails D on CO.endpointId = D.endpointId
 left outer join productionCompanies C on CO.companyId = C.companyId
 left outer join productionCompanies P on C.parentId = P.companyId
 left outer join networkCompanies N on C.companyId = N.subCompanyId 

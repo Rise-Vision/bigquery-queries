@@ -112,7 +112,7 @@ select
   count(L.eventErrorCode) as errorCount
 from `endpoint-event-logs.logs.eventLog` L
 inner join `endpoint-event-logs.errors.errorDefinitions` E on L.eventErrorCode = E.code 
-where DATE(L.timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) and UPPER(E.isRelatedToUptime) = 'Y'
+where DATE(L.timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
 group by 1, 2, 3, 4
 ),
 

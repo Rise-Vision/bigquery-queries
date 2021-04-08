@@ -1,3 +1,13 @@
+CREATE TEMP FUNCTION URLDECODE(url STRING) AS ((
+  SELECT STRING_AGG(
+    IF(REGEXP_CONTAINS(y, r'^%[0-9a-fA-F]{2}'), 
+      SAFE_CONVERT_BYTES_TO_STRING(FROM_HEX(REPLACE(y, '%', ''))), y), '' 
+    ORDER BY i
+    )
+  FROM UNNEST(REGEXP_EXTRACT_ALL(url, r"%[0-9a-fA-F]{2}(?:%[0-9a-fA-F]{2})*|[^%]+")) y
+  WITH OFFSET AS i 
+));
+
 with
 
 productionCompanies as
@@ -180,6 +190,146 @@ where DATE(H.timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) and eventApp 
 group by 1, 2, 3, 4
 ),
 
+endpointDownloads_legacy1 as
+(
+select 
+REGEXP_EXTRACT(URLDECODE(REGEXP_EXTRACT(cs_uri, r'parent=([^?&#]*)')), r'id=([^?&#]*)') as endpointId,
+'Display' as endpointType,
+'' as scheduleId,
+sum(sc_bytes) as downloadedBytes
+from `avid-life-623.RiseStorageLogs_v2.UsageLogs*`
+where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and 
+(strpos(URLDECODE(cs_uri), '://widgets.risevision.com/viewer') > 0 or strpos(URLDECODE(cs_uri), '://viewer.risevision.com') > 0)
+group by 1, 2, 3
+),
+
+endpointDownloads_legacy2 as
+(
+select 
+REGEXP_EXTRACT(URLDECODE(REGEXP_EXTRACT(cs_referer, r'parent=([^?&#]*)')), r'id=([^?&#]*)') as endpointId,
+'Display' as endpointType,
+'' as scheduleId,
+sum(sc_bytes) as downloadedBytes
+from `avid-life-623.RiseStorageLogs_v2.UsageLogs*`
+where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and 
+(strpos(URLDECODE(cs_referer), '://widgets.risevision.com/viewer') > 0 or strpos(URLDECODE(cs_referer), '://viewer.risevision.com') > 0)
+group by 1, 2, 3
+),
+
+endpointDownloads_legacy3 as
+(
+select 
+REGEXP_EXTRACT(cs_uri, r'viewerId=([^?&#]*)') as endpointId,
+'Embed' as endpointType,
+REGEXP_EXTRACT(URLDECODE(REGEXP_EXTRACT(cs_uri, r'parent=([^?&#]*)')), r'id=([^?&#]*)') as scheduleId,
+sum(sc_bytes) as downloadedBytes
+from `avid-life-623.RiseStorageLogs_v2.UsageLogs*`
+where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and strpos(URLDECODE(cs_uri), 'type=sharedschedule') > 0 and strpos(URLDECODE(cs_uri), '://widgets.risevision.com/viewer') > 0
+group by 1, 2, 3
+),
+
+endpointDownloads_legacy4 as
+(
+select 
+REGEXP_EXTRACT(cs_uri, r'viewerId=([^?&#]*)') as endpointId,
+'URL' as endpointType,
+'' as scheduleId,
+sum(sc_bytes) as downloadedBytes
+from `avid-life-623.RiseStorageLogs_v2.UsageLogs*`
+where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and strpos(URLDECODE(cs_uri), 'viewerType=sharedschedule') > 0
+group by 1, 2, 3
+),
+
+endpointDownloads_legacy5 as
+(
+select 
+REGEXP_EXTRACT(cs_referer, r'viewerId=([^?&#]*)') as endpointId,
+'Embed' as endpointType,
+REGEXP_EXTRACT(URLDECODE(REGEXP_EXTRACT(cs_referer, r'parent=([^?&#]*)')), r'id=([^?&#]*)') as scheduleId,
+sum(sc_bytes) as downloadedBytes
+from `avid-life-623.RiseStorageLogs_v2.UsageLogs*`
+where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and strpos(URLDECODE(cs_referer), 'type=sharedschedule') > 0 and strpos(URLDECODE(cs_referer), '://widgets.risevision.com/viewer') > 0
+group by 1, 2, 3
+),
+
+endpointDownloads_legacy6 as
+(
+select 
+REGEXP_EXTRACT(cs_referer, r'viewerId=([^?&#]*)') as endpointId,
+'URL' as endpointType,
+'' as scheduleId,
+sum(sc_bytes) as downloadedBytes
+from `avid-life-623.RiseStorageLogs_v2.UsageLogs*`
+where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and strpos(URLDECODE(cs_referer), 'ype=sharedschedule') > 0 and strpos(URLDECODE(cs_referer), '://widgets.risevision.com/viewer') <= 0
+group by 1, 2, 3
+),
+
+
+endpointDownloads_legacy7 as
+(
+select 
+REGEXP_EXTRACT(cs_uri, r'displayId=([^?&#]*)') as endpointId,
+'Display' as endpointType,
+'' as scheduleId,
+sum(sc_bytes) as downloadedBytes
+from `avid-life-623.RiseStorageLogs_v2.UsageLogs*`
+where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) 
+and strpos(cs_uri, 'GoogleAccessId=') > 0 and strpos(cs_uri, 'Signature=') > 0 and strpos(cs_uri, 'Expires=') > 0
+group by 1, 2, 3
+),
+
+endpointDownloads_legacy as
+(
+select 
+  endpointId,
+  endpointType,
+  scheduleId,
+  downloadedBytes
+from endpointDownloads_legacy1
+union distinct
+select 
+  endpointId,
+  endpointType,
+  scheduleId,
+  downloadedBytes
+from endpointDownloads_legacy2
+union distinct
+select 
+  endpointId,
+  endpointType,
+  scheduleId,
+  downloadedBytes
+from endpointDownloads_legacy3
+union distinct
+select 
+  endpointId,
+  endpointType,
+  scheduleId,
+  downloadedBytes
+from endpointDownloads_legacy4
+union distinct
+select 
+  endpointId,
+  endpointType,
+  scheduleId,
+  downloadedBytes
+from endpointDownloads_legacy5
+union distinct
+select 
+  endpointId,
+  endpointType,
+  scheduleId,
+  downloadedBytes
+from endpointDownloads_legacy6
+union distinct
+select 
+  endpointId,
+  endpointType,
+  scheduleId,
+  downloadedBytes
+from endpointDownloads_legacy7
+),
+
 costs as
 (
 select
@@ -190,9 +340,11 @@ select
     else S.companyId
   end as companyId,
   IFNULL((CAST(B.downloadedBytes as FLOAT64) * CAST(totalDownloadCost as FLOAT64)) / CAST(totalDownloaded as FLOAT64), 0.0) as dailyDirectCost,
+  IFNULL((CAST(L.downloadedBytes as FLOAT64) * CAST(totalDownloadCost as FLOAT64)) / CAST(totalDownloaded as FLOAT64), 0.0) as dailyDirectCost_legacy,
   IFNULL((CAST((IFNULL(logInsertCount, 0) +  IFNULL(heatbeatInsertCount, 0)) as FLOAT64) * CAST(totalStreamInsertCost as FLOAT64)) / CAST((totalLogInsertCount + totalHeartbeatInsertCount) as FLOAT64), 0.0) as dailyIndirectCost
 from endpoints E, downloadBandwidth, downloadCost, streamInsertCost, logInserts, heartbeatInserts
 left outer join endpointDownloads B on E.endpointId = B.endpointId and E.endpointType = B.endpointType and E.scheduleId = B.scheduleId
+left outer join endpointDownloads_legacy L on E.endpointId = L.endpointId
 left outer join endpointLogInserts LI on E.endpointId = LI.endpointId and E.endpointType = LI.endpointType and E.scheduleId = LI.scheduleId
 left outer join endpointHeartbeatInserts HI on E.endpointId = HI.endpointId and E.endpointType = HI.endpointType and E.scheduleId = HI.scheduleId
 left outer join productionDisplays D on E.endpointId = D.displayId
@@ -217,7 +369,7 @@ select
   N.companyId as networkCompanyId,
   N.name as networkCompanyName,
   N.companyIndustry as networkCompanyIndustry,
-  CO.dailyDirectCost,
+  CO.dailyDirectCost + CO.dailyDirectCost_legacy as dailyDirectCost,
   CO.dailyIndirectCost
 from costs CO
 left outer join endpointDetails D on CO.endpointId = D.endpointId

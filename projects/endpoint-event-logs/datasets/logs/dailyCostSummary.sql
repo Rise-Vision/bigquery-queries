@@ -190,7 +190,7 @@ where DATE(H.timestamp) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) and eventApp 
 group by 1, 2, 3, 4
 ),
 
-endpointDownloads_legacy1 as
+endpointDownloads_legacy_display as
 (
 select 
 REGEXP_EXTRACT(URLDECODE(REGEXP_EXTRACT(cs_uri, r'parent=([^?&#]*)')), r'id=([^?&#]*)') as endpointId,
@@ -199,11 +199,11 @@ REGEXP_EXTRACT(URLDECODE(REGEXP_EXTRACT(cs_uri, r'parent=([^?&#]*)')), r'id=([^?
 sum(sc_bytes) as downloadedBytes
 from `avid-life-623.RiseStorageLogs_v2.UsageLogs*`
 where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and 
-(strpos(URLDECODE(cs_uri), '://widgets.risevision.com/viewer') > 0 or strpos(URLDECODE(cs_uri), '://viewer.risevision.com') > 0)
+(strpos(URLDECODE(cs_uri), '://widgets.risevision.com/viewer') > 0 or strpos(URLDECODE(cs_uri), '://viewer.risevision.com') > 0) and strpos(URLDECODE(cs_uri), 'ype=sharedschedule') <= 0
 group by 1, 2, 3
 ),
 
-endpointDownloads_legacy2 as
+endpointDownloads_legacy_display_referer as
 (
 select 
 REGEXP_EXTRACT(URLDECODE(REGEXP_EXTRACT(cs_referer, r'parent=([^?&#]*)')), r'id=([^?&#]*)') as endpointId,
@@ -212,11 +212,11 @@ REGEXP_EXTRACT(URLDECODE(REGEXP_EXTRACT(cs_referer, r'parent=([^?&#]*)')), r'id=
 sum(sc_bytes) as downloadedBytes
 from `avid-life-623.RiseStorageLogs_v2.UsageLogs*`
 where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and 
-(strpos(URLDECODE(cs_referer), '://widgets.risevision.com/viewer') > 0 or strpos(URLDECODE(cs_referer), '://viewer.risevision.com') > 0)
+(strpos(URLDECODE(cs_referer), '://widgets.risevision.com/viewer') > 0 or strpos(URLDECODE(cs_referer), '://viewer.risevision.com') > 0) and strpos(URLDECODE(cs_referer), 'ype=sharedschedule') <= 0
 group by 1, 2, 3
 ),
 
-endpointDownloads_legacy3 as
+endpointDownloads_legacy_embed as
 (
 select 
 REGEXP_EXTRACT(cs_uri, r'viewerId=([^?&#]*)') as endpointId,
@@ -224,11 +224,11 @@ REGEXP_EXTRACT(cs_uri, r'viewerId=([^?&#]*)') as endpointId,
 REGEXP_EXTRACT(URLDECODE(REGEXP_EXTRACT(cs_uri, r'parent=([^?&#]*)')), r'id=([^?&#]*)') as scheduleId,
 sum(sc_bytes) as downloadedBytes
 from `avid-life-623.RiseStorageLogs_v2.UsageLogs*`
-where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and strpos(URLDECODE(cs_uri), 'type=sharedschedule') > 0 and strpos(URLDECODE(cs_uri), '://widgets.risevision.com/viewer') > 0
+where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and strpos(URLDECODE(cs_uri), 'ype=sharedschedule') > 0 and strpos(URLDECODE(cs_uri), '://widgets.risevision.com/viewer') > 0
 group by 1, 2, 3
 ),
 
-endpointDownloads_legacy4 as
+endpointDownloads_legacy_url as
 (
 select 
 REGEXP_EXTRACT(cs_uri, r'viewerId=([^?&#]*)') as endpointId,
@@ -236,11 +236,11 @@ REGEXP_EXTRACT(cs_uri, r'viewerId=([^?&#]*)') as endpointId,
 '' as scheduleId,
 sum(sc_bytes) as downloadedBytes
 from `avid-life-623.RiseStorageLogs_v2.UsageLogs*`
-where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and strpos(URLDECODE(cs_uri), 'viewerType=sharedschedule') > 0
+where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and strpos(URLDECODE(cs_uri), 'ype=sharedschedule') > 0 and strpos(URLDECODE(cs_uri), '://widgets.risevision.com/viewer') <= 0
 group by 1, 2, 3
 ),
 
-endpointDownloads_legacy5 as
+endpointDownloads_legacy_embed_referer as
 (
 select 
 REGEXP_EXTRACT(cs_referer, r'viewerId=([^?&#]*)') as endpointId,
@@ -248,11 +248,11 @@ REGEXP_EXTRACT(cs_referer, r'viewerId=([^?&#]*)') as endpointId,
 REGEXP_EXTRACT(URLDECODE(REGEXP_EXTRACT(cs_referer, r'parent=([^?&#]*)')), r'id=([^?&#]*)') as scheduleId,
 sum(sc_bytes) as downloadedBytes
 from `avid-life-623.RiseStorageLogs_v2.UsageLogs*`
-where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and strpos(URLDECODE(cs_referer), 'type=sharedschedule') > 0 and strpos(URLDECODE(cs_referer), '://widgets.risevision.com/viewer') > 0
+where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and strpos(URLDECODE(cs_referer), 'ype=sharedschedule') > 0 and strpos(URLDECODE(cs_referer), '://widgets.risevision.com/viewer') > 0
 group by 1, 2, 3
 ),
 
-endpointDownloads_legacy6 as
+endpointDownloads_legacy_url_referer as
 (
 select 
 REGEXP_EXTRACT(cs_referer, r'viewerId=([^?&#]*)') as endpointId,
@@ -265,7 +265,7 @@ group by 1, 2, 3
 ),
 
 
-endpointDownloads_legacy7 as
+endpointDownloads_legacy_display_signedUrls as
 (
 select 
 REGEXP_EXTRACT(cs_uri, r'displayId=([^?&#]*)') as endpointId,
@@ -285,49 +285,49 @@ select
   endpointType,
   scheduleId,
   downloadedBytes
-from endpointDownloads_legacy1
+from endpointDownloads_legacy_display
 union distinct
 select 
   endpointId,
   endpointType,
   scheduleId,
   downloadedBytes
-from endpointDownloads_legacy2
+from endpointDownloads_legacy_display_referer
 union distinct
 select 
   endpointId,
   endpointType,
   scheduleId,
   downloadedBytes
-from endpointDownloads_legacy3
+from endpointDownloads_legacy_embed
 union distinct
 select 
   endpointId,
   endpointType,
   scheduleId,
   downloadedBytes
-from endpointDownloads_legacy4
+from endpointDownloads_legacy_embed_referer
 union distinct
 select 
   endpointId,
   endpointType,
   scheduleId,
   downloadedBytes
-from endpointDownloads_legacy5
+from endpointDownloads_legacy_url
 union distinct
 select 
   endpointId,
   endpointType,
   scheduleId,
   downloadedBytes
-from endpointDownloads_legacy6
+from endpointDownloads_legacy_url_referer
 union distinct
 select 
   endpointId,
   endpointType,
   scheduleId,
   downloadedBytes
-from endpointDownloads_legacy7
+from endpointDownloads_legacy_display_signedUrls
 ),
 
 costs as

@@ -1,13 +1,3 @@
-CREATE TEMP FUNCTION URLDECODE(url STRING) AS ((
-  SELECT STRING_AGG(
-    IF(REGEXP_CONTAINS(y, r'^%[0-9a-fA-F]{2}'), 
-      SAFE_CONVERT_BYTES_TO_STRING(FROM_HEX(REPLACE(y, '%', ''))), y), '' 
-    ORDER BY i
-    )
-  FROM UNNEST(REGEXP_EXTRACT_ALL(url, r"%[0-9a-fA-F]{2}(?:%[0-9a-fA-F]{2})*|[^%]+")) y
-  WITH OFFSET AS i 
-));
-
 with
 
 productionCompanies as
@@ -193,26 +183,26 @@ group by 1, 2, 3, 4
 endpointDownloads_legacy_display as
 (
 select 
-REGEXP_EXTRACT(URLDECODE(REGEXP_EXTRACT(cs_uri, r'parent=([^?&#]*)')), r'id=([^?&#]*)') as endpointId,
+REGEXP_EXTRACT(`endpoint-event-logs.logs.urlDecode`(REGEXP_EXTRACT(cs_uri, r'parent=([^?&#]*)')), r'id=([^?&#]*)') as endpointId,
 'Display' as endpointType,
 '' as scheduleId,
 sum(sc_bytes) as downloadedBytes
 from `avid-life-623.RiseStorageLogs_v2.UsageLogs*`
 where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and 
-(strpos(URLDECODE(cs_uri), '://widgets.risevision.com/viewer') > 0 or strpos(URLDECODE(cs_uri), '://viewer.risevision.com') > 0) and strpos(URLDECODE(cs_uri), 'ype=sharedschedule') <= 0
+(strpos(`endpoint-event-logs.logs.urlDecode`(cs_uri), '://widgets.risevision.com/viewer') > 0 or strpos(`endpoint-event-logs.logs.urlDecode`(cs_uri), '://viewer.risevision.com') > 0) and strpos(`endpoint-event-logs.logs.urlDecode`(cs_uri), 'ype=sharedschedule') <= 0
 group by 1, 2, 3
 ),
 
 endpointDownloads_legacy_display_referer as
 (
 select 
-REGEXP_EXTRACT(URLDECODE(REGEXP_EXTRACT(cs_referer, r'parent=([^?&#]*)')), r'id=([^?&#]*)') as endpointId,
+REGEXP_EXTRACT(`endpoint-event-logs.logs.urlDecode`(REGEXP_EXTRACT(cs_referer, r'parent=([^?&#]*)')), r'id=([^?&#]*)') as endpointId,
 'Display' as endpointType,
 '' as scheduleId,
 sum(sc_bytes) as downloadedBytes
 from `avid-life-623.RiseStorageLogs_v2.UsageLogs*`
 where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and 
-(strpos(URLDECODE(cs_referer), '://widgets.risevision.com/viewer') > 0 or strpos(URLDECODE(cs_referer), '://viewer.risevision.com') > 0) and strpos(URLDECODE(cs_referer), 'ype=sharedschedule') <= 0
+(strpos(`endpoint-event-logs.logs.urlDecode`(cs_referer), '://widgets.risevision.com/viewer') > 0 or strpos(`endpoint-event-logs.logs.urlDecode`(cs_referer), '://viewer.risevision.com') > 0) and strpos(`endpoint-event-logs.logs.urlDecode`(cs_referer), 'ype=sharedschedule') <= 0
 group by 1, 2, 3
 ),
 
@@ -226,10 +216,10 @@ case
  when strpos(lower(REGEXP_EXTRACT(cs_uri, r'env=([^?&#]*)')), 'apps_') > 0 or strpos(lower(REGEXP_EXTRACT(cs_uri, r'viewerEnv=([^?&#]*)')), 'apps_') > 0 then 'InApp'
  else 'URL'
 end as endpointType,
-REGEXP_EXTRACT(URLDECODE(REGEXP_EXTRACT(cs_uri, r'parent=([^?&#]*)')), r'id=([^?&#]*)') as scheduleId,
+REGEXP_EXTRACT(`endpoint-event-logs.logs.urlDecode`(REGEXP_EXTRACT(cs_uri, r'parent=([^?&#]*)')), r'id=([^?&#]*)') as scheduleId,
 sum(sc_bytes) as downloadedBytes
 from `avid-life-623.RiseStorageLogs_v2.UsageLogs*`
-where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and strpos(URLDECODE(cs_uri), 'ype=sharedschedule') > 0
+where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and strpos(`endpoint-event-logs.logs.urlDecode`(cs_uri), 'ype=sharedschedule') > 0
 group by 1, 2, 3
 ),
 
@@ -243,10 +233,10 @@ case
  when strpos(lower(REGEXP_EXTRACT(cs_referer, r'env=([^?&#]*)')), 'apps_') > 0 or strpos(lower(REGEXP_EXTRACT(cs_referer, r'viewerEnv=([^?&#]*)')), 'apps_') > 0 then 'InApp'
  else 'URL'
 end as endpointType,
-REGEXP_EXTRACT(URLDECODE(REGEXP_EXTRACT(cs_referer, r'parent=([^?&#]*)')), r'id=([^?&#]*)') as scheduleId,
+REGEXP_EXTRACT(`endpoint-event-logs.logs.urlDecode`(REGEXP_EXTRACT(cs_referer, r'parent=([^?&#]*)')), r'id=([^?&#]*)') as scheduleId,
 sum(sc_bytes) as downloadedBytes
 from `avid-life-623.RiseStorageLogs_v2.UsageLogs*`
-where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and strpos(URLDECODE(cs_referer), 'ype=sharedschedule') > 0
+where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and strpos(`endpoint-event-logs.logs.urlDecode`(cs_referer), 'ype=sharedschedule') > 0
 group by 1, 2, 3
 ),
 

@@ -216,54 +216,39 @@ where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 D
 group by 1, 2, 3
 ),
 
-endpointDownloads_legacy_embed as
+endpointDownloads_legacy_sharedschedule as
 (
 select 
 REGEXP_EXTRACT(cs_uri, r'viewerId=([^?&#]*)') as endpointId,
-'Embed' as endpointType,
+case
+ when lower(REGEXP_EXTRACT(cs_uri, r'env=([^?&#]*)')) = 'embed' or lower(REGEXP_EXTRACT(cs_uri, r'viewerEnv=([^?&#]*)')) = 'embed' then 'Embed'
+ when lower(REGEXP_EXTRACT(cs_uri, r'env=([^?&#]*)')) = 'extension' or lower(REGEXP_EXTRACT(cs_uri, r'viewerEnv=([^?&#]*)')) = 'extension' then 'Extension'
+ when strpos(lower(REGEXP_EXTRACT(cs_uri, r'env=([^?&#]*)')), 'apps_') > 0 or strpos(lower(REGEXP_EXTRACT(cs_uri, r'viewerEnv=([^?&#]*)')), 'apps_') > 0 then 'InApp'
+ else 'URL'
+end as endpointType,
 REGEXP_EXTRACT(URLDECODE(REGEXP_EXTRACT(cs_uri, r'parent=([^?&#]*)')), r'id=([^?&#]*)') as scheduleId,
 sum(sc_bytes) as downloadedBytes
 from `avid-life-623.RiseStorageLogs_v2.UsageLogs*`
-where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and strpos(URLDECODE(cs_uri), 'ype=sharedschedule') > 0 and strpos(URLDECODE(cs_uri), '://widgets.risevision.com/viewer') > 0
+where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and strpos(URLDECODE(cs_uri), 'ype=sharedschedule') > 0
 group by 1, 2, 3
 ),
 
-endpointDownloads_legacy_url as
-(
-select 
-REGEXP_EXTRACT(cs_uri, r'viewerId=([^?&#]*)') as endpointId,
-'URL' as endpointType,
-'' as scheduleId,
-sum(sc_bytes) as downloadedBytes
-from `avid-life-623.RiseStorageLogs_v2.UsageLogs*`
-where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and strpos(URLDECODE(cs_uri), 'ype=sharedschedule') > 0 and strpos(URLDECODE(cs_uri), '://widgets.risevision.com/viewer') <= 0
-group by 1, 2, 3
-),
-
-endpointDownloads_legacy_embed_referer as
+endpointDownloads_legacy_sharedschedule_referer as
 (
 select 
 REGEXP_EXTRACT(cs_referer, r'viewerId=([^?&#]*)') as endpointId,
-'Embed' as endpointType,
+case
+ when lower(REGEXP_EXTRACT(cs_referer, r'env=([^?&#]*)')) = 'embed' or lower(REGEXP_EXTRACT(cs_referer, r'viewerEnv=([^?&#]*)')) = 'embed' then 'Embed'
+ when lower(REGEXP_EXTRACT(cs_referer, r'env=([^?&#]*)')) = 'extension' or lower(REGEXP_EXTRACT(cs_referer, r'viewerEnv=([^?&#]*)')) = 'extension' then 'Extension'
+ when strpos(lower(REGEXP_EXTRACT(cs_referer, r'env=([^?&#]*)')), 'apps_') > 0 or strpos(lower(REGEXP_EXTRACT(cs_referer, r'viewerEnv=([^?&#]*)')), 'apps_') > 0 then 'InApp'
+ else 'URL'
+end as endpointType,
 REGEXP_EXTRACT(URLDECODE(REGEXP_EXTRACT(cs_referer, r'parent=([^?&#]*)')), r'id=([^?&#]*)') as scheduleId,
 sum(sc_bytes) as downloadedBytes
 from `avid-life-623.RiseStorageLogs_v2.UsageLogs*`
-where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and strpos(URLDECODE(cs_referer), 'ype=sharedschedule') > 0 and strpos(URLDECODE(cs_referer), '://widgets.risevision.com/viewer') > 0
+where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and strpos(URLDECODE(cs_referer), 'ype=sharedschedule') > 0
 group by 1, 2, 3
 ),
-
-endpointDownloads_legacy_url_referer as
-(
-select 
-REGEXP_EXTRACT(cs_referer, r'viewerId=([^?&#]*)') as endpointId,
-'URL' as endpointType,
-'' as scheduleId,
-sum(sc_bytes) as downloadedBytes
-from `avid-life-623.RiseStorageLogs_v2.UsageLogs*`
-where _TABLE_SUFFIX = FORMAT_DATE("%Y%m%d",DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) and strpos(URLDECODE(cs_referer), 'ype=sharedschedule') > 0 and strpos(URLDECODE(cs_referer), '://widgets.risevision.com/viewer') <= 0
-group by 1, 2, 3
-),
-
 
 endpointDownloads_legacy_display_signedUrls as
 (
@@ -299,28 +284,14 @@ select
   endpointType,
   scheduleId,
   downloadedBytes
-from endpointDownloads_legacy_embed
+from endpointDownloads_legacy_sharedschedule
 union distinct
 select 
   endpointId,
   endpointType,
   scheduleId,
   downloadedBytes
-from endpointDownloads_legacy_embed_referer
-union distinct
-select 
-  endpointId,
-  endpointType,
-  scheduleId,
-  downloadedBytes
-from endpointDownloads_legacy_url
-union distinct
-select 
-  endpointId,
-  endpointType,
-  scheduleId,
-  downloadedBytes
-from endpointDownloads_legacy_url_referer
+from endpointDownloads_legacy_sharedschedule_referer
 union distinct
 select 
   endpointId,

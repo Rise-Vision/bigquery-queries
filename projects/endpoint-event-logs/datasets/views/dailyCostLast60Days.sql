@@ -13,7 +13,7 @@ infrastuctureCostPerEndpoint as
 select I.date, I.totalInfrastuctureCost/count(distinct U.endpointId) as infrastuctureCost
 from infrastuctureCosts I
 inner join `endpoint-event-logs.logs.dailyUsage` U on I.date = U.date
-where U.date between DATE_SUB(CURRENT_DATE(), INTERVAL 60 DAY) and CURRENT_DATE() 
+where U.endpointType <> 'InApp' and U.date between DATE_SUB(CURRENT_DATE(), INTERVAL 60 DAY) and CURRENT_DATE() 
 group by I.date, I.totalInfrastuctureCost 
 )
 
@@ -40,4 +40,4 @@ select
   infrastuctureCost
 from `endpoint-event-logs.logs.dailyCost` C
 inner join infrastuctureCostPerEndpoint I on I.date = C.date
-where C.date between DATE_SUB(CURRENT_DATE(), INTERVAL 60 DAY) and CURRENT_DATE() 
+where C.endpointType <> 'InApp' and C.date between DATE_SUB(CURRENT_DATE(), INTERVAL 60 DAY) and CURRENT_DATE() 
